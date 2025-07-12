@@ -1,5 +1,6 @@
 // src-tauri/src/window_manager.rs
-use crate::setting::load_setting_impl;
+use crate::setting::get_remind_later_impl;
+use crate::task_manager::load_tasks_impl;
 
 use std::thread;
 use std::time::{Duration, Instant};
@@ -10,35 +11,41 @@ pub fn start_periodic_popup(app_handle: AppHandle, window_label: &str) {
     let label = window_label.to_string();
     thread::spawn(move || {
         loop {
+            let tasks = load_tasks_impl(&app_handle).unwrap();
+            println!("tasks: {:?}", tasks.tasks.len());
+            if tasks.tasks.len() == 0 {
+                println!("no tasks");
+                thread::sleep(Duration::from_secs(60));
+                continue;
+            }
+
             // 只有窗口不可见时才开始计时
             if let Some(window) = app_handle.get_webview_window(&label) {
-                // 如果窗口可见，等待直到窗口不可见
+                // [1]如果窗口可见，等待直到窗口不可见
                 while window.is_visible().unwrap_or(true) {
                     thread::sleep(Duration::from_secs(1));
                 }
 
-                // 计时 interval_secs 秒
+                // [2]记录不可见开始时间，等待到interval
                 let start = Instant::now();
 
-                let setting_info = load_setting_impl(&app_handle).unwrap();
-                let interval = setting_info.remind_time * 60;
+                let reminder_minutes = get_remind_later_impl(&app_handle);
+                let interval = reminder_minutes * 60;
                 println!("interval: {}", interval);
                 while start.elapsed().as_secs() < interval {
-                    // 如果窗口在计时期间变为可见，重置计时
+                    // [3]如果窗口在计时期间变为可见，重置计时
                     if window.is_visible().unwrap_or(true) {
                         break;
                     }
                     thread::sleep(Duration::from_millis(200));
                 }
 
-                // 如果窗口在计时期间变为可见，跳过本次弹窗
+                // [4]如果窗口在计时期间变为可见，跳过本次弹窗
                 if window.is_visible().unwrap_or(true) {
                     continue;
                 }
 
-                // 这里窗口不可见，弹窗
-                // 你可以调用自定义定位函数
-                //move_to_top_right(&window).unwrap();
+                // [5]这里窗口不可见，弹窗
                 let _ = window.show();
                 let _ = window.set_focus();
             } else {

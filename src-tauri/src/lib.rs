@@ -83,7 +83,8 @@ pub fn run() {
             task_manager::save_tasks,
             task_manager::load_tasks,
             setting::save_setting,
-            setting::load_setting
+            setting::load_setting,
+            setting::set_remind_later,
         ])
         .run(tauri::generate_context!())
         .expect("failed to run app");

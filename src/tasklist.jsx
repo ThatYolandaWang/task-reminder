@@ -1,22 +1,31 @@
 import { motion } from "motion/react";
 import { Reorder } from "framer-motion";
 import { useState, useEffect, useRef } from 'react';
-import { Plus, Info } from 'lucide-react';
+import { Plus, Info, AlarmClock } from 'lucide-react';
 import { Task } from './task';
 import { invoke } from '@tauri-apps/api/core';
 import Button from './components/button';
+import Select from './components/select';
 import { v4 as uuidv4 } from 'uuid';
 
 const PERCENT_MODEL_ERROR = "总百分超过了100%, 请重新调整比例"
+
+
+const remindHoursOptions = [
+  { label: '1小时', value: 1 },
+  { label: '2小时', value: 2 },
+  { label: '3小时', value: 3 }
+]
 
 export function TaskList() {
 
   const [error, setError] = useState("");
   const debounceTimer = useRef(); // 防抖计时器
+  const [items, setItems] = useState([]);
+  const isInitial = useRef(true);
+  const [remindLaterHours, setRemindLaterHours] = useState(1);
 
-  const [items, setItems] = useState([])
-
-  const isInitial = useRef(true)
+  const debounceError = useRef(); // 防抖错误提示
 
 
   // 加载本地任务
@@ -92,6 +101,13 @@ export function TaskList() {
     return () => clearTimeout(debounceTimer.current);
   }, [items]);
 
+  useEffect(() => {
+    if (debounceError.current) clearTimeout(debounceError.current);
+    debounceError.current = setTimeout(() => {
+      setError("")
+    }, 10000);
+  }, [error])
+
 
   // 保存tasks到本地
   async function saveTasks(tasks) {
@@ -104,18 +120,19 @@ export function TaskList() {
     }
   }
 
+  async function remindLater() {
+    try {
+      await invoke("set_remind_later", {
+        hours: Number(remindLaterHours)
+      })
+    } catch (err) {
+      setError(err)
+    }
+  }
+
   return (
     <>
-      <div className='flex flex-col items-center justify-center gap-8 px-4 h-full'>
-        {/* 标题 */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 1 }}
-          className="w-full flex flex-col items-center justify-center gap-2 pt-4 h-20">
-          <div className='font-bold text-2xl text-center'>HI,THERE</div>
-          
-        </motion.div>
+      <div className='flex flex-col items-center justify-center px-4 h-full'>
 
         {isInitial.current ? (
           <motion.div
@@ -124,54 +141,59 @@ export function TaskList() {
             exit={{ opacity: 0 }}
             transition={{ duration: 1, delay: 1 }}
             className="flex-1 w-full flex flex-col items-center justify-center gap-2 pt-4 h-20">
-            
+
             <div className='text-sm text-gray-500 text-center animate-pulse'>请你记下今天最重要的三件事，全力以赴，完成它</div>
           </motion.div>
         ) : (
 
-          <div className="flex-1 flex flex-col justify-center items-center gap-8 w-full">
+          <div className="flex flex-col justify-center items-center w-full relative h-full">
 
             {/* 事件列表 */}
-            <Reorder.Group axis="y" values={items} onReorder={setItems} className="w-full space-y-2 ">
-              {items.map((item, index) => (
-                <Task key={item.id} item={item} onChangeValue={handleChange} index={index} handleFinish={handleFinish} />
-              ))}
-            </Reorder.Group>
+            {items.length > 0 ? (
+              <Reorder.Group axis="y" values={items} onReorder={setItems} className="w-full space-y-2 flex-1 flex flex-col items-center justify-center">
+                {items.map((item, index) => (
+                  <Task key={item.id} item={item} onChangeValue={handleChange} index={index} handleFinish={handleFinish} />
+                ))}
+              </Reorder.Group>
+            ) :
+              (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 1 }}
+                  className="text-sm text-gray-500 text-center flex-1 flex items-center justify-center">请你记下今天最重要的三件事，全力以赴，完成它</motion.div>
+              )}
 
-            {/* 如果列表为空，显示提示 */}
-            {items.length === 0 && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 1 }}
-                className="text-sm text-gray-500 text-center">请你记下今天最重要的三件事，全力以赴，完成它</motion.div>
-            )}
-            {/* 添加任务按钮 */}
-            <Button onClick={handleAddTask}>
-              <Plus size={16} />添加任务
-            </Button>
+            {/* 错误提示 */}
+            {error &&
+              <div className="w-full flex justify-end items-center gap-2 sticky bottom-0">
+                <Info className="animate-bounce" size={16} />
+                <div className='text-sm text-gray-500 overflow-hidden text-ellipsis whitespace-nowrap'>{error}</div>
+              </div>
+            }
+            <div className="w-full flex justify-between items-center p-2 sticky bottom-0">
+
+              {items.length > 0 && <div className="flex flex-row items-center gap-2">
+                <Button onClick={remindLater}>
+                  <AlarmClock className="flex-shrink-0" size={16} /> <span className="text-ellipsis whitespace-nowrap">稍后提醒</span>
+                </Button>
+
+                <Select options={remindHoursOptions} value={remindLaterHours} onChange={e => setRemindLaterHours(e.target.value)} />
+              </div>
+              }
+
+              {/* 添加任务按钮 */}
+              <Button onClick={handleAddTask}>
+                <Plus size={16} />添加任务
+              </Button>
+
+
+            </div>
 
           </div>
         )}
-
-        {/* 错误提示 */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 1 }}
-          className="w-full flex justify-end items-center h-10 gap-2 sticky bottom-0">
-          {error &&
-            <>
-              <Info className="animate-bounce" size={16} />
-              <div className='text-sm text-gray-500 overflow-hidden text-ellipsis whitespace-nowrap'>{error}</div>
-            </>
-          }
-        </motion.div>
       </div>
-
-
     </>
   )
 }

@@ -26,7 +26,7 @@ export const Task = ({ item, onChangeValue, index, handleFinish }) => {
             transition={{ duration: 0.5 }}
             dragListener={false}
             dragControls={dragControls}
-            className="flex flex-row justify-between items-center gap-4 min-h-10 border-b border-gray-200 p-2 rounded-md bg-white  select-none"
+            className="flex flex-row w-full justify-between items-center gap-4 min-h-10 border-b border-gray-200 p-2 rounded-md bg-white  select-none"
         >
             {/* logo. 根据index 显示不同的颜色 */}
             <div className={`${index === 0 ? 'text-red-500' : index === 1 ? 'text-amber-500' : 'text-green-500'}`}>

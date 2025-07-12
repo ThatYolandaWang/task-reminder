@@ -1,5 +1,10 @@
 use serde::{Deserialize, Serialize};
 use tauri::Manager;
+use once_cell::sync::Lazy;
+use std::sync::Mutex;
+
+
+pub static GLOBAL_REMIND_TIME: Lazy<Mutex<u64>> = Lazy::new(|| Mutex::new(0));
 
 #[derive(Serialize, Deserialize)]
 pub struct Setting {
@@ -24,6 +29,7 @@ pub fn load_setting(app: tauri::AppHandle) -> Result<Setting, String> {
     load_setting_impl(&app)
 }
 
+// 保存配置
 pub fn save_setting_impl(setting: &Setting, app: &tauri::AppHandle) -> Result<SaveResult, String> {
     let config_dir = app.path().app_config_dir().unwrap();
 
@@ -35,6 +41,7 @@ pub fn save_setting_impl(setting: &Setting, app: &tauri::AppHandle) -> Result<Sa
     Ok(SaveResult { success: true })
 }
 
+// 加载配置
 pub fn load_setting_impl(app: &tauri::AppHandle) -> Result<Setting, String> {
     let config_dir = app.path().app_config_dir().unwrap();
 
@@ -53,4 +60,28 @@ pub fn load_setting_impl(app: &tauri::AppHandle) -> Result<Setting, String> {
     let json = std::fs::read_to_string(file_path).unwrap();
     let setting: Setting = serde_json::from_str(&json).unwrap();
     Ok(setting)
+}
+
+#[tauri::command]
+pub fn set_remind_later(hours: u64, app: tauri::AppHandle) -> Result<(), String> {
+    set_remind_later_impl(hours, &app);
+    Ok(())
+}
+
+pub fn set_remind_later_impl(hours: u64, app: &tauri::AppHandle) {
+    println!("set_remind_later: {}", hours);
+    *GLOBAL_REMIND_TIME.lock().unwrap() = hours;
+    let Some(window) = app.get_webview_window("main") else {
+        return;
+    };
+    window.hide();
+}
+
+pub fn get_remind_later_impl(app: &tauri::AppHandle) -> u64 {
+    if *GLOBAL_REMIND_TIME.lock().unwrap() == 0 {
+        let setting = load_setting_impl(app).unwrap();
+        return setting.remind_time;
+    } else {
+        return *GLOBAL_REMIND_TIME.lock().unwrap() * 60;
+    }
 }
