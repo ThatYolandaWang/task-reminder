@@ -7,7 +7,7 @@ use tauri_plugin_autostart::MacosLauncher;
 
 use tauri::menu::{MenuBuilder, MenuItemBuilder};
 use tauri::{Manager, WindowEvent};
-use tauri::tray::TrayIconBuilder;
+use tauri::tray::{TrayIconBuilder, TrayIconEvent};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -49,6 +49,17 @@ pub fn run() {
                     }
                     _ => {}
                 })
+                .on_tray_icon_event(|tray_handle, event: TrayIconEvent| {
+                    match event {
+                        TrayIconEvent::DoubleClick { .. } => {
+                            if let Some(win) = tray_handle.app_handle().get_webview_window("main") {
+                                win.show().ok();
+                                win.set_focus().ok();
+                            }
+                        }
+                        _ => {}
+                    }
+                })
                 .build(app)
                 .unwrap();
 
@@ -67,6 +78,7 @@ pub fn run() {
             Some(vec!["com.task-reminder.app"])
         ))
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_positioner::init())
         .invoke_handler(tauri::generate_handler![
             task_manager::save_tasks,
             task_manager::load_tasks,

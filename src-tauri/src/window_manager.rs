@@ -38,7 +38,7 @@ pub fn start_periodic_popup(app_handle: AppHandle, window_label: &str) {
 
                 // 这里窗口不可见，弹窗
                 // 你可以调用自定义定位函数
-                move_to_top_right(&window).unwrap();
+                //move_to_top_right(&window).unwrap();
                 let _ = window.show();
                 let _ = window.set_focus();
             } else {
