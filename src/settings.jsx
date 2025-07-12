@@ -4,12 +4,39 @@ import { useState, useEffect, useRef } from "react"
 import Slider from "./components/slider"
 import Input from "./components/input"
 import Button from "./components/button"
+import { TabSwitcher } from "./components/tab-switcher"
+
 import { invoke } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
-import { FolderOpen, Info } from "lucide-react"
+import { FolderOpen, Info, ArrowUpLeft, ArrowDownLeft, ArrowUpRight, ArrowDownRight } from "lucide-react"
 
 
-
+const positionOptions = [
+  {
+    id: 0,
+    label: "左上角",
+    tip: "左上角",
+    icon: <ArrowUpLeft />
+  },
+  {
+    id: 1,
+    label: "左下角",
+    tip: "左下角",
+    icon: <ArrowDownLeft />
+  },
+  {
+    id: 2,
+    label: "右上角",
+    tip: "右上角",
+    icon: <ArrowUpRight />
+  },
+  {
+    id: 3,
+    label: "右下角",
+    tip: "右下角",
+    icon: <ArrowDownRight />
+  }
+]
 export default function Settings() {
 
   const [error, setError] = useState("1")
@@ -17,6 +44,7 @@ export default function Settings() {
 
 
   const [setting, setSetting] = useState({
+    position: 3, // 0 左上角 1 左下角 2 右上角 3 右下角
     remind_time: 10,
     task_type: 0,
     path: ""
@@ -115,6 +143,11 @@ export default function Settings() {
           }} disabled={true} />
           <Button onClick={handleSelectFile}><FolderOpen size={16} /></Button>
         </div>
+
+        {/* 窗口位置 */}
+        <TabSwitcher label="窗口位置" active={setting.position} options={positionOptions}  onChange={(e)=>{
+          setSetting({ ...setting, position: e })
+        }} />
 
         <Button>退出</Button>
 

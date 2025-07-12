@@ -1,12 +1,31 @@
-# React + Vite
+# task reminder
+根据**高效人士的七个习惯**打造的一款桌面任务应用，帮助用户管理每日最重要的任务，定期提醒，避免被繁杂的任务淹没。
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+支持windows和macos系统。
 
-Currently, two official plugins are available:
+前端：react+vite+tailwindcss
+后端：rust+tauri
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 本地部署说明
+1. 安装nodejs
 
-## Expanding the ESLint configuration
+2. 安装rust环境
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+    window环境:
+    - visual studio developer command prompt
+    - https://rustup.rs/
+    - 安装rust环境
+
+    mac环境:
+    - 安装rust
+    ```bash
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+    ```
+    - 安装tauri
+    ```bash
+    cargo install tauri-cli
+    ```
+
+3. 安装tauri
+
+
