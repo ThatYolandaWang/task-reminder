@@ -49,8 +49,9 @@ export default function NotionLoginButton() {
                     // 成功后的处理，如弹窗、跳转、刷新页面等
                     setUser(data.data)
                     setState("success")
+                    clearInterval(stateTimer.current);
                 } else {
-                    console.log(data)
+                    console.log(data.status)
                 }
                 // 可根据需要处理其他状态
             } catch (err) {

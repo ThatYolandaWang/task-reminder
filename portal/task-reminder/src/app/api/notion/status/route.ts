@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
 
   if (tokenData) {
 
-    return NextResponse.json(JSON.parse(tokenData));
+    return NextResponse.json({ status: "success", data: JSON.parse(tokenData) });
   } else {
     return NextResponse.json({ error: "No token data" }, { status: 400 });
   }
