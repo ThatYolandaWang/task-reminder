@@ -41,10 +41,14 @@ export async function GET(req: NextRequest) {
 
   const tokenData = await tokenRes.json();
 
+  console.log(tokenData)
+
   if (tokenRes.ok && tokenData.access_token) {
 
     const redis =  await createClient({ url: process.env.REDIS_URL }).connect();
     if (state) {
+
+      console.log("save redis:", state)
       await redis.set(state, JSON.stringify(tokenData));
     }
 
