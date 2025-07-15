@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::setting::load_setting_impl;
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
 pub struct Task {
@@ -45,7 +45,9 @@ pub fn load_tasks_impl(app: &tauri::AppHandle) -> Result<TaskList, String> {
     if !file_path.exists() {
         return Ok(TaskList { tasks: vec![] });
     }
-    let content = std::fs::read_to_string(&file_path).map_err(|e| format!("读取文件失败: {}", e))?;
-    let task_list: TaskList = serde_json::from_str(&content).map_err(|e| format!("解析 JSON 失败: {}", e))?;
+    let content =
+        std::fs::read_to_string(&file_path).map_err(|e| format!("读取文件失败: {}", e))?;
+    let task_list: TaskList =
+        serde_json::from_str(&content).map_err(|e| format!("解析 JSON 失败: {}", e))?;
     Ok(task_list)
 }

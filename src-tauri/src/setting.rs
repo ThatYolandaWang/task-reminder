@@ -1,8 +1,7 @@
-use serde::{Deserialize, Serialize};
-use tauri::Manager;
 use once_cell::sync::Lazy;
+use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
-
+use tauri::Manager;
 
 pub static GLOBAL_REMIND_TIME: Lazy<Mutex<u64>> = Lazy::new(|| Mutex::new(0));
 
@@ -53,7 +52,13 @@ pub fn load_setting_impl(app: &tauri::AppHandle) -> Result<Setting, String> {
             position: 3,
             remind_time: 60,
             task_type: 0,
-            path: app.path().app_config_dir().unwrap().to_str().unwrap().to_string()
+            path: app
+                .path()
+                .app_config_dir()
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .to_string(),
         });
     }
 

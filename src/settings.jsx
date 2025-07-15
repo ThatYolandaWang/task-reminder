@@ -4,12 +4,12 @@ import { useState, useEffect, useRef } from "react"
 import Slider from "./components/slider"
 import Input from "./components/input"
 import Button from "./components/button"
-import { TabSwitcher } from "./components/tab-switcher"
 
+import { TabSwitcher } from "./components/tab-switcher"
+import NotionLoginButton from "./notion"
 import { invoke } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
 import { FolderOpen, Info, ArrowUpLeft, ArrowDownLeft, ArrowUpRight, ArrowDownRight } from "lucide-react"
-
 
 const positionOptions = [
   {
@@ -37,6 +37,8 @@ const positionOptions = [
     icon: <ArrowDownRight />
   }
 ]
+
+
 export default function Settings() {
 
   const [error, setError] = useState("1")
@@ -114,6 +116,7 @@ export default function Settings() {
     }
   }
 
+
   return (
     <div className='flex flex-col items-center justify-center gap-8 px-4 h-full'>
       {/* 标题 */}
@@ -126,6 +129,8 @@ export default function Settings() {
       </motion.div>
 
       <div className="flex-1 flex flex-col gap-4 w-full">
+
+        <NotionLoginButton />
 
         <Slider label="开启自动启动" isOn={isOn} setIsOn={setAutostart} />
         <Slider label="任务划分（时间）" isOn={setting.task_type === 0} setIsOn={(e)=>{

@@ -12,6 +12,7 @@
     "autostart:allow-enable",
     "autostart:allow-disable",
     "dialog:default",
-    "positioner:default"
+    "positioner:default",
+    "shell:default"
   ]
 }

@@ -6,12 +6,13 @@ mod window_manager; // 声明模块
 use tauri_plugin_autostart::MacosLauncher;
 
 use tauri::menu::{MenuBuilder, MenuItemBuilder};
-use tauri::{Manager, WindowEvent};
 use tauri::tray::{TrayIconBuilder, TrayIconEvent};
+use tauri::{Manager, WindowEvent};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_shell::init())
         .setup(|app| {
             let toggle = MenuItemBuilder::new("Show/Hide").id("toggle").build(app)?;
             let quit = MenuItemBuilder::new("Quit").id("quit").build(app)?;
@@ -49,16 +50,14 @@ pub fn run() {
                     }
                     _ => {}
                 })
-                .on_tray_icon_event(|tray_handle, event: TrayIconEvent| {
-                    match event {
-                        TrayIconEvent::DoubleClick { .. } => {
-                            if let Some(win) = tray_handle.app_handle().get_webview_window("main") {
-                                win.show().ok();
-                                win.set_focus().ok();
-                            }
+                .on_tray_icon_event(|tray_handle, event: TrayIconEvent| match event {
+                    TrayIconEvent::DoubleClick { .. } => {
+                        if let Some(win) = tray_handle.app_handle().get_webview_window("main") {
+                            win.show().ok();
+                            win.set_focus().ok();
                         }
-                        _ => {}
                     }
+                    _ => {}
                 })
                 .build(app)
                 .unwrap();
@@ -75,7 +74,7 @@ pub fn run() {
         })
         .plugin(tauri_plugin_autostart::init(
             MacosLauncher::LaunchAgent,
-            Some(vec!["com.task-reminder.app"])
+            Some(vec!["com.task-reminder.app"]),
         ))
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_positioner::init())
