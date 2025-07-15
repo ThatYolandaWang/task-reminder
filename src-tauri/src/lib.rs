@@ -12,6 +12,7 @@ use tauri::{Manager, WindowEvent};
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_shell::init())
         .setup(|app| {
             let toggle = MenuItemBuilder::new("Show/Hide").id("toggle").build(app)?;

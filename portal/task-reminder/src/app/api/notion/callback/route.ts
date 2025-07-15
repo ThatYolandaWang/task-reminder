@@ -2,9 +2,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Buffer } from "buffer";
 
+import { createClient } from "redis"
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const code = searchParams.get("code");
+  const state = searchParams.get("state");
   const error = searchParams.get("error");
 
   if (error) {
@@ -39,6 +42,12 @@ export async function GET(req: NextRequest) {
   const tokenData = await tokenRes.json();
 
   if (tokenRes.ok && tokenData.access_token) {
+
+    const redis =  await createClient({ url: process.env.REDIS_URL }).connect();
+    if (state) {
+      await redis.set(state, JSON.stringify(tokenData));
+    }
+
     return NextResponse.json(tokenData);
   } else {
     return NextResponse.json({ error: tokenData }, { status: 400 });

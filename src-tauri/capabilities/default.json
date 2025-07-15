@@ -13,6 +13,13 @@
     "autostart:allow-disable",
     "dialog:default",
     "positioner:default",
-    "shell:default"
+    "shell:default",
+    {
+      "identifier": "http:default",
+      "allow": [
+        { "url": "https://task-reminder-tau.vercel.app" },
+        { "url": "http://localhost:3001" }
+      ]
+    }
   ]
 }
