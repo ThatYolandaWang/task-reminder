@@ -1,5 +1,6 @@
 // #[cfg_attr(mobile, tauri::mobile_entry_point)]
 
+mod notion;
 mod setting;
 mod task_manager;
 mod window_manager; // 声明模块
@@ -12,8 +13,10 @@ use tauri::{Manager, WindowEvent};
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_window_state::Builder::new().build())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_window_state::Builder::default().build())
         .setup(|app| {
             let toggle = MenuItemBuilder::new("Show/Hide").id("toggle").build(app)?;
             let quit = MenuItemBuilder::new("Quit").id("quit").build(app)?;
@@ -35,7 +38,7 @@ pub fn run() {
                     "quit" => app.exit(0),
                     "toggle" => {
                         let win = app.get_webview_window("main").unwrap();
-                        window_manager::move_to_top_right(&win).unwrap();
+                        //window_manager::move_to_top_right(&win).unwrap();
                         if win.is_visible().unwrap_or(false) {
                             win.hide().unwrap();
                         } else {
@@ -65,6 +68,8 @@ pub fn run() {
 
             window_manager::start_periodic_popup(app.handle().clone(), "main");
 
+            notion::init_auth_info(app.handle());
+
             Ok(())
         })
         .on_window_event(|window, event| {
@@ -78,13 +83,16 @@ pub fn run() {
             Some(vec!["com.task-reminder.app"]),
         ))
         .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_positioner::init())
         .invoke_handler(tauri::generate_handler![
-            task_manager::save_tasks,
-            task_manager::load_tasks,
             setting::save_setting,
             setting::load_setting,
             setting::set_remind_later,
+            notion::load_auth_info,
+            notion::save_auth_info,
+            task_manager::save_tasks,
+            task_manager::load_tasks,
+            task_manager::add_task,
+            task_manager::update_task,
         ])
         .run(tauri::generate_context!())
         .expect("failed to run app");

@@ -1,15 +1,14 @@
 use once_cell::sync::Lazy;
-use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
+
+use serde::{Deserialize, Serialize};
 use tauri::Manager;
 
 pub static GLOBAL_REMIND_TIME: Lazy<Mutex<u64>> = Lazy::new(|| Mutex::new(0));
 
 #[derive(Serialize, Deserialize)]
 pub struct Setting {
-    pub position: u32,    // 0 左上角 1 左下角 2 右上角 3 右下角
     pub remind_time: u64, // 定期提醒时间（分钟）
-    pub task_type: u32,   // 0: 按时间划分, 1: 按任务划分
     pub path: String,     // 配置路径
 }
 
@@ -49,9 +48,7 @@ pub fn load_setting_impl(app: &tauri::AppHandle) -> Result<Setting, String> {
     // 文件不存在时，
     if !file_path.exists() {
         return Ok(Setting {
-            position: 3,
             remind_time: 60,
-            task_type: 0,
             path: app
                 .path()
                 .app_config_dir()
@@ -79,7 +76,7 @@ pub fn set_remind_later_impl(hours: u64, app: &tauri::AppHandle) {
     let Some(window) = app.get_webview_window("main") else {
         return;
     };
-    window.hide();
+    window.hide().unwrap();
 }
 
 pub fn get_remind_later_impl(app: &tauri::AppHandle) -> u64 {

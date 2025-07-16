@@ -15,6 +15,9 @@ export async function GET(req: NextRequest) {
   const redis =  await createClient({ url: process.env.REDIS_URL }).connect();
   const tokenData = await redis.get(state);
 
+  redis.del(state);
+  redis.close();
+
   if (tokenData) {
 
     return NextResponse.json({ status: "success", data: JSON.parse(tokenData) });

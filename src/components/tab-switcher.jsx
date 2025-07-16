@@ -4,16 +4,15 @@ import Button from "./button";
 
 
 export function TabSwitcher({label, active, options, onChange}) {
-    console.log(active, options);
     return (
         <div className="flex flex-col gap-2 w-full">
-            <label className="text-sm text-gray-500">{label}</label>
+            <label className="text-sm">{label}</label>
             {/* 按钮栏 */}
             <div className="flex space-x-2 rounded-full border border-gray-200 justify-center">
                 {options.map((option, idx) => (
                     <Button key={option.id} 
                         size="sm"
-                        className="relative rounded-md w-8 h-8"
+                        className="relative rounded-md w-8 h-8 cursor-pointer"
                         onClick={() => onChange(option.id)}>
                         {/* {option.label} */}
                         {active === option.id && (

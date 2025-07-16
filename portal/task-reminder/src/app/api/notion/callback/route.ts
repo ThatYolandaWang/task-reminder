@@ -20,12 +20,13 @@ export async function GET(req: NextRequest) {
   const NOTION_CLIENT_ID = process.env.NOTION_CLIENT_ID!;
   const NOTION_CLIENT_SECRET = process.env.NOTION_CLIENT_SECRET!;
   const NOTION_REDIRECT_URI = process.env.NOTION_REDIRECT_URI!;
+  const NOTION_API_URL = process.env.NOTION_API_URL!;
 
   const basicAuth = Buffer.from(
     `${NOTION_CLIENT_ID}:${NOTION_CLIENT_SECRET}`
   ).toString("base64");
 
-  const tokenRes = await fetch("https://api.notion.com/v1/oauth/token", {
+  const tokenRes = await fetch(`${NOTION_API_URL}/v1/oauth/token`, {
     method: "POST",
     headers: {
       Authorization: `Basic ${basicAuth}`,

@@ -6,7 +6,7 @@ export default function Slider({ label, isOn, setIsOn }) {
     return (
 
         <div className="flex flex-row  items-center gap-2 justify-between">
-            <label className="text-sm text-gray-500">{label}</label>
+            <label className="text-sm">{label}</label>
             <div
                 className="toggle-container border-1 border-gray-300 w-10 h-6 rounded-full flex cursor-pointer p-1"
                 style={{

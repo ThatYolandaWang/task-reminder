@@ -13,9 +13,9 @@
     "windows": [
       {
         "label": "main",
-        "title": "高效习惯养成计划",
+        "title": "PUT FIRST THINGS FIRST",
         "width": 600,
-        "height": 600,
+        "height": 300,
         "resizable": true,
         "fullscreen": false,
         "transparent": false,
@@ -31,7 +31,6 @@
         "resizable": true,
         "fullscreen": false,
         "transparent": false,
-        "alwaysOnTop": true,
         "visible": false,
         "url": "#/settings"
       }
