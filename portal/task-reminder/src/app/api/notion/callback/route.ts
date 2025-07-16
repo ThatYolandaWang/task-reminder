@@ -55,10 +55,10 @@ export async function GET(req: NextRequest) {
 
     let url = "https://www.notion.so"
     if (tokenData && tokenData.workspace_id) {
-        url += "/" + tokenData.workspace_id
+        url += "/" + tokenData.workspace_id.replace(/-/g, "")
     }
     if (tokenData && tokenData.duplicated_template_id) {
-        url += "/" + tokenData.duplicated_template_id
+        url += "/" + tokenData.duplicated_template_id.replace(/-/g, "")
     }
 
     //return NextResponse.json(tokenData);
