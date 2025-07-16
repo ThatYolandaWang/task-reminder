@@ -161,11 +161,10 @@ export default function NotionLoginButton({ icon = false, onLogin }) {
             });
             const data = await resp.json();
 
+            console.log("revoke data:", data)
+
             // 这里根据你的后端接口返回格式判断是否绑定成功
             if (data.status === "success") {
-                const data = await resp.json();
-                console.log("revoke data:",data)
-
                 const res = await invoke("clear_auth_info")
                 console.log("clear_auth_info res:", res)
                 emit("login", !res.success)
