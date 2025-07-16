@@ -13,10 +13,14 @@ use tauri::{Manager, WindowEvent};
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .plugin(tauri_plugin_window_state::Builder::new().build())
+        // .plugin(tauri_plugin_window_state::Builder::new().build())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_window_state::Builder::default().build())
+        .plugin(tauri_plugin_autostart::init(
+            MacosLauncher::LaunchAgent,
+            Some(vec!["com.task-reminder.app"]),
+        ))
         .setup(|app| {
             let toggle = MenuItemBuilder::new("Show/Hide").id("toggle").build(app)?;
             let quit = MenuItemBuilder::new("Quit").id("quit").build(app)?;
@@ -78,11 +82,6 @@ pub fn run() {
                 api.prevent_close();
             }
         })
-        .plugin(tauri_plugin_autostart::init(
-            MacosLauncher::LaunchAgent,
-            Some(vec!["com.task-reminder.app"]),
-        ))
-        .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             setting::save_setting,
             setting::load_setting,
@@ -90,10 +89,13 @@ pub fn run() {
             notion::load_auth_info,
             notion::save_auth_info,
             notion::clear_auth_info,
+            notion::select_page,
             task_manager::save_tasks,
             task_manager::load_tasks,
             task_manager::add_task,
             task_manager::update_task,
+            task_manager::load_pages,
+
         ])
         .run(tauri::generate_context!())
         .expect("failed to run app");

@@ -3,12 +3,10 @@ import { useState, useEffect, useRef } from "react"
 
 import Slider from "./components/slider"
 import Input from "./components/input"
-import Button from "./components/button"
-
 import NotionLoginButton from "./notion"
 import { invoke } from '@tauri-apps/api/core';
-import { open } from '@tauri-apps/plugin-dialog';
-import { FolderOpen, Info } from "lucide-react"
+
+import { Info } from "lucide-react"
 
 export default function Settings() {
 
@@ -18,7 +16,6 @@ export default function Settings() {
 
   const [setting, setSetting] = useState({
     remind_time: 10,
-    path: ""
   })
 
   const debounceTimer = useRef(); // 防抖计时器
@@ -55,15 +52,6 @@ export default function Settings() {
     } catch (error) {
       console.error(error)
     }
-  }
-
-
-  async function handleSelectFile() {
-    const selected = await open({
-      multiple: false,
-      directory: true // 设为 true 可选文件夹
-    });
-    setSetting({ ...setting, path: selected })
   }
 
   useEffect(() => {
@@ -110,14 +98,6 @@ export default function Settings() {
             setSetting({ ...setting, remind_time: Number(v) })
           }}
         />
-
-        {/* 配置路径 */}
-        <div className="flex flex-row items-end gap-2 justify-center">
-          <Input label="配置路径" value={setting.path} type="text" onChange={(e)=>{
-            setSetting({ ...setting, path: e.target.value })
-          }} disabled={true} />
-          <Button onClick={handleSelectFile}><FolderOpen size={16} /></Button>
-        </div>
 
       </div>
       {/* 错误提示 */}

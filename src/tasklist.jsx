@@ -1,6 +1,6 @@
 import { motion } from "motion/react";
 import { Reorder } from "framer-motion";
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Plus, Info, AlarmClock } from 'lucide-react';
 import { Task } from './task';
 import { invoke } from '@tauri-apps/api/core';
@@ -32,39 +32,51 @@ export function TaskList() {
 
   // 加载本地任务
   useEffect(() => {
-    async function loadTasks() {
-      try {
-        const res = await invoke("load_tasks")
 
-        if (res.success) {
-          setItems(res.tasks.tasks.map(item => ({ ...item, localId: item.id })))
-        } else {
-          if (res.status == "unauthorized") {
-            console.log("get task list unauthorized send 'login false'")
-            emit("login", false)
-          } else {
-            setError("加载失败！")
-          }
-        }
-      } catch (err) {
-        setError(err)
-      }
-    }
     if (!isInitial.current) {
       loadTasks()
       isInitial.current = true
     }
   }, [])
 
+  async function loadTasks() {
+    try {
+      const res = await invoke("load_tasks")
+
+      if (res.success) {
+        setItems(res.tasks.tasks.map(item => ({ ...item, localId: item.id })))
+      } else {
+        if (res.status == "unauthorized") {
+          console.log("get task list unauthorized send 'login false'")
+          emit("login", false)
+        } else if (res.status == "validation_error") {
+          setError("数据库格式错误，请重新登陆并选择以模板创建的数据库")
+        } else {
+          setError("加载失败！")
+        }
+      }
+    } catch (err) {
+      setError(err)
+    }
+  }
+
   useEffect(() => {
-    
-    const unlistenPromise = listen('login', (event) => {
+
+    const unlistenPromiseLogin = listen('login', (event) => {
       console.log("task login", event.payload)
       // 这里只做登录状态更新，不再 emit
       setIsLogin(event.payload);
     });
+
+    const unlistenPromisePage = listen('change_page', (event) => {
+      console.log("task change_page", event.payload)
+      // 这里只做登录状态更新，不再 emit
+      loadTasks();
+    });
+
     return () => {
-      unlistenPromise.then(unlisten => unlisten());
+      unlistenPromiseLogin.then(unlisten => unlisten());
+      unlistenPromisePage.then(unlisten => unlisten());
     };
   }, [])
 
@@ -83,7 +95,7 @@ export function TaskList() {
   // 添加任务
   async function handleAddTask() {
 
-    const newTask = { id: "", localId: "new-" + uuidv4(), text: '', percent: getTaskList().length == 0 ? 50 : 0, status: '未开始', createtime: '' }
+    const newTask = { id: "", localId: "new-" + uuidv4(), text: '', percent: taskList.length == 0 ? 50 : 0, status: '未开始', createtime: '' }
     setItems(items => [...items, newTask])
     setModifyTaskIds(prevIds => [...prevIds, newTask.localId])
   }
@@ -181,7 +193,7 @@ export function TaskList() {
   }
 
   // 获取未开始任务列表, 按 percent 降序排序，缓存，提高性能，之后定时同步更新
-  const getTaskList = useCallback(() => {
+  const taskList = useMemo(() => {
     return items.filter(item => item.status === '未开始').sort((a, b) => b.percent - a.percent)
   }, [items])
 
@@ -190,6 +202,18 @@ export function TaskList() {
   return (
     <>
       <div className='flex flex-col items-center justify-center h-full'>
+
+        {/* 错误提示 */}
+
+        <div className="w-full flex justify-center items-center gap-2 animate-pulse h-4">
+          {error &&
+            <>
+              <Info size={16} />
+              <div className='text-sm text-gray-500 overflow-hidden text-ellipsis whitespace-nowrap'>{error}</div>
+            </>
+          }
+        </div>
+
 
         {!isInitial.current ? (
           <motion.div
@@ -205,10 +229,10 @@ export function TaskList() {
           <div className="flex flex-col justify-center items-center w-full relative h-full">
 
             {/* 事件列表 */}
-            {getTaskList().length > 0 ? (
+            {taskList.length > 0 ? (
               <div className="overflow-y-auto h-[calc(100vh-60px)] w-full mt-4 ">
-                <Reorder.Group axis="y" values={getTaskList()} onReorder={setItems} className="w-full px-4 space-y-2 flex flex-col items-center justify-center">
-                  {getTaskList().map((item, index) => (
+                <Reorder.Group axis="y" values={taskList} onReorder={setItems} className="w-full px-4 space-y-2 flex flex-col items-center justify-center">
+                  {taskList.map((item, index) => (
                     <Task key={item.localId} item={item} onChangeValue={handleChange} index={index} handleFinish={handleFinish} />
                   ))}
                 </Reorder.Group>
@@ -225,7 +249,7 @@ export function TaskList() {
 
 
             <div className="w-full flex justify-between items-center p-2 sticky bottom-0 bg-white">
-              {getTaskList().length > 0 && <div className="flex flex-row items-center gap-2">
+              {taskList.length > 0 && <div className="flex flex-row items-center gap-2">
                 <Button onClick={remindLater}>
                   <AlarmClock className="flex-shrink-0" size={16} /> <span className="text-ellipsis whitespace-nowrap">稍后提醒</span>
                 </Button>
@@ -234,14 +258,8 @@ export function TaskList() {
               </div>
               }
 
-              <div className={`flex-1 flex flex-row ${getTaskList().length == 0 ? "justify-center" : "justify-end"}`}>
-                {/* 错误提示 */}
-                {error &&
-                  <div className="w-full flex justify-end items-center gap-2 animate-pulse">
-                    <Info size={16} />
-                    <div className='text-sm text-gray-500 overflow-hidden text-ellipsis whitespace-nowrap'>{error}</div>
-                  </div>
-                }
+              <div className={`flex-1 flex flex-row ${taskList.length == 0 ? "justify-center" : "justify-end"}`}>
+
 
                 {/* 添加任务按钮 */}
                 {isLogin && <Button onClick={handleAddTask}>

@@ -22,6 +22,16 @@ pub struct TaskList {
     pub tasks: Vec<Task>,
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct Page {
+    pub id: String,
+    pub object: String, // page or database
+    pub title: String,
+    pub parent_type: String,
+    pub parent_id: String,
+    pub url: String,
+}
+
 #[derive(Serialize, Default)]
 pub struct SaveResult {
     success: bool,
@@ -33,6 +43,9 @@ pub struct SaveResult {
 
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub status: Option<String>, // 查询任务时获取状态, "unauthorized" 未登录, "success" 成功, "failed" 失败
+
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub pages: Option<Vec<Page>>, // 查询页面时获取列表
 }
 
 #[tauri::command]
@@ -390,4 +403,107 @@ fn get_today_begin_time() -> String {
     let iso8601_str = midnight_local.to_rfc3339();
 
     return iso8601_str;
+}
+
+
+
+#[tauri::command]
+pub async fn load_pages(app: tauri::AppHandle) -> Result<SaveResult, String> {
+    load_pages_from_notion_impl(&app).await
+}
+
+// 从notion加载任务
+pub async fn load_pages_from_notion_impl(_app: &tauri::AppHandle) -> Result<SaveResult, String> {
+    let auth_info = get_auth_info_from_global();
+    if let Some(auth) = auth_info {
+        let url = format!(
+            "{}/v1/search",
+            dotenv::var("VITE_NOTION_API_URL").unwrap()
+        );
+
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            AUTHORIZATION,
+            HeaderValue::from_str(&format!("Bearer {}", auth.access_token)).unwrap(),
+        );
+        headers.insert("Notion-Version", HeaderValue::from_static("2022-06-28"));
+        headers.insert("Content-Type", HeaderValue::from_static("application/json"));
+
+        let res = reqwest::Client::new()
+            .post(url)
+            .headers(headers)
+            .send()
+            .await;
+
+        match res {
+            Ok(res) => {
+                let text = res.text().await.unwrap();
+                //println!("res text: {:?}", text);
+                let json: serde_json::Value = serde_json::from_str(&text).unwrap();
+                let results = match json.get("results").and_then(|v| v.as_array()) {
+                    Some(arr) => arr,
+                    None => {
+                        println!("解析Notion返回结果失败: {:?}", json);
+                        return Ok(SaveResult {
+                            success: false,
+                            status: Some(json["code"].as_str().unwrap_or_default().to_string()),
+                            ..Default::default()
+                        });
+                    }
+                };
+                let pages: Vec<Page> = results
+                    .iter()
+                    .map(|result| {
+                        let id = result["id"].as_str().unwrap_or_default();
+                        let object = result["object"].as_str().unwrap_or_default();
+
+                        let mut title = "";
+
+                        if object == "page" {
+                            title = result["properties"]["title"]["title"]
+                            .as_array()
+                            .and_then(|arr| arr.get(0))
+                            .and_then(|item| item["plain_text"].as_str())
+                            .unwrap_or_default();
+                        }else{
+                            title = result["title"]
+                            .as_array()
+                            .and_then(|arr| arr.get(0))
+                            .and_then(|item| item["plain_text"].as_str())
+                            .unwrap_or_default();
+                        }
+
+                        let parent_type = result["parent"]["type"].as_str().unwrap_or_default();
+                        let parent_id = result["parent"][parent_type].as_str().unwrap_or_default();
+                        let url = result["url"].as_str().unwrap_or_default();
+
+                        Page {
+                            id: id.to_string(),
+                            object: object.to_string(),
+                            title: title.to_string(),
+                            parent_type: parent_type.to_string(),
+                            parent_id: parent_id.to_string(),
+                            url: url.to_string(),
+                        }
+                    })
+                    .collect();
+
+                return Ok(SaveResult {
+                    success: true,
+                    pages: Some(pages),
+                    ..Default::default()
+                });
+            }
+            Err(e) => {
+                println!("error: {:?}", e);
+            }
+        }
+
+        //let body = res.json::<TaskList>().await?;
+    }
+    return Ok(SaveResult {
+        success: true,
+        pages: Some(vec![]),
+        ..Default::default()
+    });
 }

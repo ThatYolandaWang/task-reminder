@@ -1,7 +1,8 @@
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useMemo } from "react";
 import { open as openShell } from "@tauri-apps/plugin-shell";
 import Button from "./components/button"
-import { LoaderCircle, LogOut } from "lucide-react"
+import FileTree from "./components/pages"
+import { LoaderCircle, LogOut, Rocket } from "lucide-react"
 import { v4 as uuidv4 } from 'uuid';
 import { fetch as fetchApi } from '@tauri-apps/plugin-http';
 import { invoke } from '@tauri-apps/api/core';
@@ -22,9 +23,22 @@ export default function NotionLoginButton({ icon = false, onLogin }) {
     const [userData, setUserData] = useState(null)
     const pollCount = useRef(0); // 轮询计数
 
+    const [pages, setPages] = useState([])
+
+    const isInitial = useRef(false)
+
+    // 1. 提升 openMap 到父组件
+    const [openMap, setOpenMap] = useState({});
+
+    // 2. 提供 toggleOpen 方法
+    const toggleOpen = (id) => {
+        setOpenMap(prev => ({ ...prev, [id]: !prev[id] }));
+    };
+
+
 
     // 跳转到Notion登录页面
-    async function handleLinkToNotion() {
+    const handleLinkToNotion = async () => {
 
         setState("waiting")
 
@@ -54,13 +68,13 @@ export default function NotionLoginButton({ icon = false, onLogin }) {
                     const auth = {
                         access_token: data.data.access_token,
                         bot_id: data.data.bot_id,
-                        duplicated_template_id: data.data.duplicated_template_id.replace(/-/g, ''),
+                        duplicated_template_id: data.data.duplicated_template_id ? data.data.duplicated_template_id.replace(/-/g, '') : "",
                         user: data.data.owner.user,
                         refresh_token: data.data.refresh_token,
                         request_id: data.data.request_id,
                         token_type: data.data.token_type,
                         workspace_icon: data.data.workspace_icon,
-                        workspace_id: data.data.workspace_id.replace(/-/g, ''),
+                        workspace_id: data.data.workspace_id ? data.data.workspace_id.replace(/-/g, '') : "",
                         workspace_name: data.data.workspace_name,
                     }
                     const res = await invoke("save_auth_info", { auth })
@@ -96,9 +110,20 @@ export default function NotionLoginButton({ icon = false, onLogin }) {
         stateTimer.current = setInterval(pollStatus, 2000);
     }
 
+    const handleSelect = async (id) => {
+        try {
+            const res = await invoke("select_page", { id })
+            if (res.success) {
+                setUserData(prev => ({ ...prev, duplicated_template_id: id }))
+                emit("change_page", id)
+            }
+        } catch (err) {
+            console.error(err.toString())
+        }
+    }
+
     // 加载本地登录信息
     const loadAuthInfo = async () => {
-
         try {
             const authInfo = await invoke("load_auth_info")
             if (authInfo) {
@@ -112,16 +137,63 @@ export default function NotionLoginButton({ icon = false, onLogin }) {
         }
     }
 
+    // 加载页面列表
+    const loadPages = async () => {
+
+        // 如果icon模式，不加载页面
+        if (icon) return;
+        try {
+            const res = await invoke("load_pages")
+            if (res.success) {
+                setPages(res.pages)
+            }
+        } catch (err) {
+            console.error(err.toString())
+        }
+    }
+
+    // 初始化时加载数据，只执行一次
     useEffect(() => {
-        loadAuthInfo()
+        if (!isInitial.current) {
+            loadAuthInfo()
+            loadPages();
+            isInitial.current = true
+        }
     }, [])
 
+
+    // 根据选中界面，设置 openMap
+    useEffect(() => {
+        if (!pages.length || !userData?.duplicated_template_id) return;
+
+        // 1. 构建 id -> parent_id 映射
+        const idToParent = {};
+        pages.forEach(item => {
+            idToParent[item.id] = item.parent_id;
+        });
+
+        // 2. 递归查找所有父节点
+        const openIds = {};
+        let currentId = userData.duplicated_template_id;
+        while (currentId && idToParent[currentId]) {
+            openIds[idToParent[currentId]] = true;
+            currentId = idToParent[currentId];
+        }
+
+        // 3. 设置 openMap
+        setOpenMap(openIds);
+
+    }, [pages, userData?.duplicated_template_id]);
+
+
+    // 监听登录状态，处理由task list发过来的登录状态变更
     useEffect(() => {
         const unlistenPromise = listen("login", (event) => {
             console.log("notion login", event.payload)
 
             if (event.payload) {
-                loadAuthInfo()
+                loadAuthInfo();
+                loadPages();
             } else {
                 setState("failed")
                 setUserData(null)
@@ -132,8 +204,8 @@ export default function NotionLoginButton({ icon = false, onLogin }) {
         };
     }, [])
 
+    // 打开notion database界面
     async function handleOpenNotion() {
-
         if (["failed"].includes(state)) {
             await handleLinkToNotion()
         } else if (state === "success") {
@@ -148,8 +220,8 @@ export default function NotionLoginButton({ icon = false, onLogin }) {
         }
     }
 
+    // 退出登录，通过代理服务器调用Notion的revoke接口，再清空rust的auth缓存
     async function handleLogout() {
-
         try {
             console.log("clear_auth_info")
 
@@ -169,12 +241,33 @@ export default function NotionLoginButton({ icon = false, onLogin }) {
                 console.log("clear_auth_info res:", res)
                 emit("login", !res.success)
             }
-
-
         } catch (error) {
             console.error(error.toString())
         }
     }
+
+
+    // 重新计算页面，根据父子关系排列
+    const pageTree = useMemo(() => {
+
+        if (!isInitial.current || pages.length == 0) return [];
+
+        const map = {};
+        const roots = [];
+        pages.forEach(item => {
+            map[item.id] = { ...item, children: [] };
+        });
+        pages.forEach(item => {
+            if (item.parent_id && map[item.parent_id]) {
+                map[item.parent_id].children.push(map[item.id]);
+            } else {
+                roots.push(map[item.id]);
+            }
+        });
+
+        console.log("roots", roots)
+        return roots;
+    }, [pages, isInitial.current])
 
     const NotStart = () => {
         return (
@@ -197,23 +290,40 @@ export default function NotionLoginButton({ icon = false, onLogin }) {
 
     const Success = () => {
         return (
-            <div className="w-full flex flex-row items-center justify-between gap-2">
-                <div className="flex flex-row items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-                        <span className="text-sm text-gray-500">{userData.user.name.slice(0, 1)}</span>
+            <div className="w-full flex flex-col gap-2">
+                <div className="w-full flex flex-row items-center justify-between gap-2">
+                    <div className="flex flex-row items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
+                            <span className="text-sm text-gray-500">{userData?.user?.name?.slice(0, 1)}</span>
+                        </div>
+                        <span className="text-ellipsis whitespace-nowrap text-sm">{userData?.user?.name}</span>
+
+                        <Button onClick={handleLogout}>
+                            <LogOut size={16} />
+                        </Button>
                     </div>
-                    <span className="text-ellipsis whitespace-nowrap text-sm">{userData.user.name}</span>
 
-                    <Button onClick={handleLogout}>
-                        <LogOut size={16} />
+                    <Button onClick={handleOpenNotion}>
+                        <img src="/notionlogo.png" alt="notion" className={`w-5 h-5 ${state == "waiting" && "animate-pulse"}`} />
                     </Button>
-                </div>
 
-                <Button onClick={handleOpenNotion}>
-                    <img src="/notionlogo.png" alt="notion" className={`w-5 h-5 ${state == "waiting" && "animate-pulse"}`} />
-                </Button>
+
+                </div>
+                <div className="w-full flex flex-col gap-2 bg-gray-100 rounded-lg py-1">
+                    <FileTree
+                        data={pageTree}
+                        select={userData?.duplicated_template_id}
+                        onSelect={handleSelect}
+                        openMap={openMap}
+                        toggleOpen={toggleOpen}
+                    />
+                </div>
             </div>
         )
+    }
+
+    if (!isInitial.current) {
+        return <div>Loading...</div>
     }
 
     return (
