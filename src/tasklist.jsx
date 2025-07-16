@@ -9,6 +9,8 @@ import Select from './components/select';
 import { v4 as uuidv4 } from 'uuid';
 import NotionLoginButton from './notion';
 
+import { emit, listen } from '@tauri-apps/api/event';
+
 const PERCENT_MODEL_ERROR = "总百分超过了100%, 请重新调整比例"
 
 
@@ -26,17 +28,23 @@ export function TaskList() {
   const [remindLaterHours, setRemindLaterHours] = useState(1);
   const debounceError = useRef(); // 防抖错误提示
   const [modifyTaskIds, setModifyTaskIds] = useState([]);
-
+  const [isLogin, setIsLogin] = useState(true);
 
   // 加载本地任务
   useEffect(() => {
     async function loadTasks() {
       try {
         const res = await invoke("load_tasks")
-        setError(res ? "" : "加载失败！")
-        if (res) {
-          console.log(res.tasks)
-          setItems(res.tasks.map(item => ({ ...item, localId: item.id })))
+
+        if (res.success) {
+          setItems(res.tasks.tasks.map(item => ({ ...item, localId: item.id })))
+        } else {
+          if (res.status == "unauthorized") {
+            console.log("get task list unauthorized send 'login false'")
+            emit("login", false)
+          } else {
+            setError("加载失败！")
+          }
         }
       } catch (err) {
         setError(err)
@@ -48,6 +56,17 @@ export function TaskList() {
     }
   }, [])
 
+  useEffect(() => {
+    
+    const unlistenPromise = listen('login', (event) => {
+      console.log("task login", event.payload)
+      // 这里只做登录状态更新，不再 emit
+      setIsLogin(event.payload);
+    });
+    return () => {
+      unlistenPromise.then(unlisten => unlisten());
+    };
+  }, [])
 
   //修改任务和百分比
   const handleChange = (localId, newText, newPercent) => {
@@ -201,12 +220,12 @@ export function TaskList() {
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 1 }}
-                  className="text-sm text-gray-500 text-center flex-1 flex items-center justify-center">请你记下今天最重要的三件事，全力以赴，完成它</motion.div>
+                  className="text-sm text-gray-500 text-center flex items-center justify-center">请你记下今天最重要的三件事，全力以赴，完成它</motion.div>
               )}
 
 
             <div className="w-full flex justify-between items-center p-2 sticky bottom-0 bg-white">
-              {items.length > 0 && <div className="flex flex-row items-center gap-2">
+              {getTaskList().length > 0 && <div className="flex flex-row items-center gap-2">
                 <Button onClick={remindLater}>
                   <AlarmClock className="flex-shrink-0" size={16} /> <span className="text-ellipsis whitespace-nowrap">稍后提醒</span>
                 </Button>
@@ -215,7 +234,7 @@ export function TaskList() {
               </div>
               }
 
-              <div className="flex-1 flex flex-row justify-end">
+              <div className={`flex-1 flex flex-row ${getTaskList().length == 0 ? "justify-center" : "justify-end"}`}>
                 {/* 错误提示 */}
                 {error &&
                   <div className="w-full flex justify-end items-center gap-2 animate-pulse">
@@ -225,11 +244,12 @@ export function TaskList() {
                 }
 
                 {/* 添加任务按钮 */}
-                <Button onClick={handleAddTask}>
+                {isLogin && <Button onClick={handleAddTask}>
                   <Plus size={16} /> <span className="flex-shrink-0">添加任务</span>
                 </Button>
+                }
 
-                <NotionLoginButton icon={true} />
+                <NotionLoginButton icon={true} onLogin={() => setIsLogin(true)} />
               </div>
             </div>
 

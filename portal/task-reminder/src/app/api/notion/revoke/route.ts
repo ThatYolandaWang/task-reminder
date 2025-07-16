@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
     }),
   });
 
-  if (tokenRes.ok) {
+  if (tokenRes.status === 200) {
     return NextResponse.json({ status: "success" });
   } else {
     return NextResponse.json({ status: "error" }, { status: 400 });

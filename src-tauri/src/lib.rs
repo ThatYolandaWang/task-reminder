@@ -89,6 +89,7 @@ pub fn run() {
             setting::set_remind_later,
             notion::load_auth_info,
             notion::save_auth_info,
+            notion::clear_auth_info,
             task_manager::save_tasks,
             task_manager::load_tasks,
             task_manager::add_task,

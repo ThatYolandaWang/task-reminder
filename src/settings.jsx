@@ -14,7 +14,7 @@ export default function Settings() {
 
   const [error, setError] = useState("")
   const [isOn, setIsOn] = useState(false)
-
+  const [isLogin, setIsLogin] = useState(true)
 
   const [setting, setSetting] = useState({
     remind_time: 10,
@@ -23,10 +23,11 @@ export default function Settings() {
 
   const debounceTimer = useRef(); // 防抖计时器
 
+
   useEffect(() => {
     loadSetting()
     getAutostart()
-  }, [])
+  }, [isLogin])
 
   async function loadSetting() {
 
@@ -99,7 +100,7 @@ export default function Settings() {
 
       <div className="flex-1 flex flex-col gap-4 w-full">
 
-        <NotionLoginButton />
+        <NotionLoginButton onLogin={() => setIsLogin(true)} />
 
         <Slider label="开启自动启动" isOn={isOn} setIsOn={setAutostart} />
 

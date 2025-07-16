@@ -26,7 +26,13 @@ pub struct TaskList {
 pub struct SaveResult {
     success: bool,
     #[serde(skip_serializing_if = "Option::is_none", default)]
-    pub id: Option<String>,
+    pub id: Option<String>,     // 添加任务时，返回任务id
+
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub tasks: Option<TaskList>,// 查询任务时获取列表
+
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub status: Option<String>, // 查询任务时获取状态, "unauthorized" 未登录, "success" 成功, "failed" 失败
 }
 
 #[tauri::command]
@@ -45,16 +51,26 @@ pub async fn update_task(task: Task, app: tauri::AppHandle) -> Result<SaveResult
 }
 
 #[tauri::command]
-pub async fn load_tasks(app: tauri::AppHandle) -> Result<TaskList, String> {
+pub async fn load_tasks(app: tauri::AppHandle) -> Result<SaveResult, String> {
     load_tasks_impl(&app).await
 }
 
-pub async fn load_tasks_impl(app: &tauri::AppHandle) -> Result<TaskList, String> {
+pub async fn load_tasks_impl(app: &tauri::AppHandle) -> Result<SaveResult, String> {
+    // let auth_info = get_auth_info_from_global();
+    // if let Some(_auth) = auth_info {
+    //     return load_tasks_from_notion_impl(&app).await;
+    // } else {
+    //     return load_tasks_from_local_impl(&app).await;
+    // }
     let auth_info = get_auth_info_from_global();
     if let Some(_auth) = auth_info {
         return load_tasks_from_notion_impl(&app).await;
     } else {
-        return load_tasks_from_local_impl(&app).await;
+        return Ok(SaveResult {
+            success: false,
+            status: Some("unauthorized".to_string()),
+            ..Default::default()
+        });
     }
 }
 
@@ -70,23 +86,31 @@ fn save_tasks_impl(tasks: &TaskList, app: &tauri::AppHandle) -> Result<SaveResul
     })
 }
 
-async fn load_tasks_from_local_impl(app: &tauri::AppHandle) -> Result<TaskList, String> {
+async fn load_tasks_from_local_impl(app: &tauri::AppHandle) -> Result<SaveResult, String> {
     let config_dir = load_setting_impl(app).unwrap().path;
     let file_path = std::path::Path::new(&config_dir).join("tasks.json");
 
     // 文件不存在时，返回空任务列表
     if !file_path.exists() {
-        return Ok(TaskList { tasks: vec![] });
+        return Ok(SaveResult {
+            success: true,
+            tasks: Some(TaskList { tasks: vec![] }),
+            ..Default::default()
+        });
     }
     let content =
         std::fs::read_to_string(&file_path).map_err(|e| format!("读取文件失败: {}", e))?;
     let task_list: TaskList =
         serde_json::from_str(&content).map_err(|e| format!("解析 JSON 失败: {}", e))?;
-    Ok(task_list)
+    Ok(SaveResult {
+        success: true,
+        tasks: Some(task_list),
+        ..Default::default()
+    })
 }
 
 // 从notion加载任务
-pub async fn load_tasks_from_notion_impl(_app: &tauri::AppHandle) -> Result<TaskList, String> {
+pub async fn load_tasks_from_notion_impl(_app: &tauri::AppHandle) -> Result<SaveResult, String> {
     let auth_info = get_auth_info_from_global();
     if let Some(auth) = auth_info {
         let url = format!(
@@ -148,8 +172,17 @@ pub async fn load_tasks_from_notion_impl(_app: &tauri::AppHandle) -> Result<Task
                 let text = res.text().await.unwrap();
                 //println!("res text: {:?}", text);
                 let json: serde_json::Value = serde_json::from_str(&text).unwrap();
-                let results = json["results"].as_array().unwrap();
-
+                let results = match json.get("results").and_then(|v| v.as_array()) {
+                    Some(arr) => arr,
+                    None => {
+                        println!("解析Notion返回结果失败: {:?}", json);
+                        return Ok(SaveResult {
+                            success: false,
+                            status: Some(json["code"].as_str().unwrap_or_default().to_string()),
+                            ..Default::default()
+                        });
+                    }
+                };
                 let tasks: Vec<Task> = results
                     .iter()
                     .map(|result| {
@@ -180,7 +213,11 @@ pub async fn load_tasks_from_notion_impl(_app: &tauri::AppHandle) -> Result<Task
                     })
                     .collect();
 
-                return Ok(TaskList { tasks: tasks });
+                return Ok(SaveResult {
+                    success: true,
+                    tasks: Some(TaskList { tasks: tasks }),
+                    ..Default::default()
+                });
             }
             Err(e) => {
                 println!("error: {:?}", e);
@@ -189,7 +226,11 @@ pub async fn load_tasks_from_notion_impl(_app: &tauri::AppHandle) -> Result<Task
 
         //let body = res.json::<TaskList>().await?;
     }
-    return Ok(TaskList { tasks: vec![] });
+    return Ok(SaveResult {
+        success: true,
+        tasks: Some(TaskList { tasks: vec![] }),
+        ..Default::default()
+    });
 }
 
 // 修改notion中的某条任务
@@ -319,6 +360,7 @@ async fn add_task_to_notion_impl(
                 return Ok(SaveResult {
                     success: true,
                     id: Some(json.get("id").unwrap().as_str().unwrap().to_string()),
+                    ..Default::default()
                 });
             }
             Err(e) => {

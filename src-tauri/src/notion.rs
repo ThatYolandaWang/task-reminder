@@ -77,13 +77,30 @@ pub fn load_auth_info(app: tauri::AppHandle) -> Result<Option<AuthInfo>, String>
 
 // 退出登陆
 #[tauri::command]
-pub fn clear_auth_info(_app: tauri::AppHandle) -> Result<SaveResult, String> {
-    GLOBAL_AUTH_INFO.set(Mutex::new(None)).ok();
+pub fn clear_auth_info(app: tauri::AppHandle) -> Result<SaveResult, String> {
+
+    println!("clear_auth_info");
+    // 清空内存
+    if let Some(mutex) = GLOBAL_AUTH_INFO.get() {
+        let mut guard = mutex.lock().unwrap();
+        *guard = None; // 这样即可清空全局内容
+    }
+    
+    // 清空本地文件
+    let config_dir = app.path().app_config_dir().unwrap();
+    let file_path = config_dir.join("auth_info.json");
+    if file_path.exists() {
+        println!("remove_file");
+        std::fs::remove_file(&file_path).map_err(|e| e.to_string())?;
+    }
     Ok(SaveResult { success: true })
 }
 
 // 前端保存授权信息
 pub fn save_auth_info_impl(auth: &AuthInfo, app: &tauri::AppHandle) -> Result<SaveResult, String> {
+
+    println!("save_auth_info_impl");
+    println!("user: {}", auth.user.name);
     let config_dir = app.path().app_config_dir().unwrap();
 
     let file_path = config_dir.join("auth_info.json");
@@ -92,7 +109,11 @@ pub fn save_auth_info_impl(auth: &AuthInfo, app: &tauri::AppHandle) -> Result<Sa
     let json = serde_json::to_string_pretty(&auth).map_err(|e| e.to_string())?;
     std::fs::write(&file_path, json).map_err(|e| e.to_string())?;
 
-    GLOBAL_AUTH_INFO.set(Mutex::new(Some(auth.clone()))).ok();
+    // 需要更新内容时
+    if let Some(mutex) = GLOBAL_AUTH_INFO.get() {
+        let mut guard = mutex.lock().unwrap();
+        *guard = Some(auth.clone()); // 或 None 以清除
+    }
 
     Ok(SaveResult { success: true })
 }

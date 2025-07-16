@@ -1,10 +1,12 @@
 import { useRef, useState, useEffect } from "react";
 import { open as openShell } from "@tauri-apps/plugin-shell";
 import Button from "./components/button"
-import { LoaderCircle, LogOut, ExternalLink } from "lucide-react"
+import { LoaderCircle, LogOut } from "lucide-react"
 import { v4 as uuidv4 } from 'uuid';
 import { fetch as fetchApi } from '@tauri-apps/plugin-http';
 import { invoke } from '@tauri-apps/api/core';
+import { emit, listen } from '@tauri-apps/api/event';
+
 
 const NOTION_CLIENT_ID = import.meta.env.VITE_NOTION_CLIENT_ID;
 const NOTION_SERVER_URL = import.meta.env.VITE_NOTION_SERVER_URL;
@@ -12,7 +14,7 @@ const NOTION_REDIRECT_URI = `${NOTION_SERVER_URL}/api/notion/callback`
 
 const MAX_POLL_COUNT = 30;
 
-export default function NotionLoginButton({ icon = false }) {
+export default function NotionLoginButton({ icon = false, onLogin }) {
     const stateTimer = useRef(); // 防抖计时器
 
     const [state, setState] = useState("not_start") // 状态: not_start, waiting, success, failed
@@ -52,23 +54,26 @@ export default function NotionLoginButton({ icon = false }) {
                     const auth = {
                         access_token: data.data.access_token,
                         bot_id: data.data.bot_id,
-                        duplicated_template_id: data.data.duplicated_template_id,
+                        duplicated_template_id: data.data.duplicated_template_id.replace(/-/g, ''),
                         user: data.data.owner.user,
                         refresh_token: data.data.refresh_token,
                         request_id: data.data.request_id,
                         token_type: data.data.token_type,
                         workspace_icon: data.data.workspace_icon,
-                        workspace_id: data.data.workspace_id,
+                        workspace_id: data.data.workspace_id.replace(/-/g, ''),
                         workspace_name: data.data.workspace_name,
                     }
                     const res = await invoke("save_auth_info", { auth })
                     console.log(res)
-                    if (res.success) {
-                        setUserData(auth)
-                        setState("success")
-                    } else {
-                        setState("failed")
-                    }
+                    emit("login", res.success)
+                    onLogin(res.success)
+                    // if (res.success) {
+                    //     setUserData(auth)
+                    //     setState("success")
+                    //     onLogin(true)
+                    // } else {
+                    //     setState("failed")
+                    // }
                     clearInterval(stateTimer.current);
                 } else {
                     console.log(data.status)
@@ -91,22 +96,40 @@ export default function NotionLoginButton({ icon = false }) {
         stateTimer.current = setInterval(pollStatus, 2000);
     }
 
-    useEffect(() => {
-        const loadAuthInfo = async () => {
+    // 加载本地登录信息
+    const loadAuthInfo = async () => {
 
-            try {
-                const authInfo = await invoke("load_auth_info")
-                if (authInfo) {
-                    setUserData(authInfo)
-                    setState("success")
-                } else {
-                    setState("failed")
-                }
-            } catch (err) {
-                console.error(err.toString())
+        try {
+            const authInfo = await invoke("load_auth_info")
+            if (authInfo) {
+                setUserData(authInfo)
+                setState("success")
+            } else {
+                setState("failed")
             }
+        } catch (err) {
+            console.error(err.toString())
         }
+    }
+
+    useEffect(() => {
         loadAuthInfo()
+    }, [])
+
+    useEffect(() => {
+        const unlistenPromise = listen("login", (event) => {
+            console.log("notion login", event.payload)
+
+            if (event.payload) {
+                loadAuthInfo()
+            } else {
+                setState("failed")
+                setUserData(null)
+            }
+        })
+        return () => {
+            unlistenPromise.then(unlisten => unlisten());
+        };
     }, [])
 
     async function handleOpenNotion() {
@@ -137,16 +160,15 @@ export default function NotionLoginButton({ icon = false }) {
                 })
             });
             const data = await resp.json();
+
             // 这里根据你的后端接口返回格式判断是否绑定成功
             if (data.status === "success") {
                 const data = await resp.json();
-                console.log(data)
+                console.log("revoke data:",data)
 
                 const res = await invoke("clear_auth_info")
-                if (res.success) {
-                    setUserData(null)
-                    setState("not_start")
-                }
+                console.log("clear_auth_info res:", res)
+                emit("login", !res.success)
             }
 
 
@@ -199,7 +221,8 @@ export default function NotionLoginButton({ icon = false }) {
         <div className="flex flex-row items-center justify-center gap-4">
             {icon ? (
                 <Button onClick={handleOpenNotion}>
-                    <img src="/notionlogo.png" alt="notion" className={`w-5 h-5 ${state == "waiting" && "animate-pulse"}`} />
+                    <img src="/notionlogo.png" alt="notion" className={`w-5 h-5 flex-shrink-0 ${state == "waiting" && "animate-pulse"}`} />
+                    {["failed", "not_start"].includes(state) && <span className="text-sm">登陆 </span>}
                 </Button>
             ) : (
                 <>
