@@ -53,6 +53,8 @@ export async function GET(req: NextRequest) {
       await redis.set(state, JSON.stringify(tokenData));
     }
 
+    console.log("tokenData:", tokenData)
+
     let url = "https://www.notion.so"
     if (tokenData && tokenData.workspace_id) {
         url += "/" + tokenData.workspace_id.replace(/-/g, "")
@@ -60,6 +62,8 @@ export async function GET(req: NextRequest) {
     if (tokenData && tokenData.duplicated_template_id) {
         url += "/" + tokenData.duplicated_template_id.replace(/-/g, "")
     }
+
+
 
     //return NextResponse.json(tokenData);
     return NextResponse.redirect(url);
