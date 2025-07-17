@@ -454,7 +454,7 @@ pub async fn load_pages_from_notion_impl(_app: &tauri::AppHandle) -> Result<Save
                 let pages: Vec<Page> = results
                     .iter()
                     .map(|result| {
-                        let id = result["id"].as_str().unwrap_or_default();
+                        let id = result["id"].as_str().unwrap_or_default().replace("-", "");
                         let object = result["object"].as_str().unwrap_or_default();
 
                         let mut title = "";
@@ -474,7 +474,7 @@ pub async fn load_pages_from_notion_impl(_app: &tauri::AppHandle) -> Result<Save
                         }
 
                         let parent_type = result["parent"]["type"].as_str().unwrap_or_default();
-                        let parent_id = result["parent"][parent_type].as_str().unwrap_or_default();
+                        let parent_id = result["parent"][parent_type].as_str().unwrap_or_default().replace("-", "");
                         let url = result["url"].as_str().unwrap_or_default();
 
                         Page {
