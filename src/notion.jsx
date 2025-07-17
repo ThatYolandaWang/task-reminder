@@ -17,18 +17,16 @@ const MAX_POLL_COUNT = 30;
 
 export default function NotionLoginButton({ icon = false, onLogin }) {
     const stateTimer = useRef(); // 防抖计时器
-
     const [state, setState] = useState("not_start") // 状态: not_start, waiting, success, failed
-
     const [userData, setUserData] = useState(null)
     const pollCount = useRef(0); // 轮询计数
-
     const [pages, setPages] = useState([])
-
     const isInitial = useRef(false)
+
 
     // 1. 提升 openMap 到父组件
     const [openMap, setOpenMap] = useState({});
+
 
     // 2. 提供 toggleOpen 方法
     const toggleOpen = (id) => {
@@ -282,8 +280,8 @@ export default function NotionLoginButton({ icon = false, onLogin }) {
 
     const Waiting = () => {
         return (
-            <div>
-                <LoaderCircle className="animate-spin" />
+            <div className="flex flex-row items-center gap-2">
+                <LoaderCircle className="animate-spin" /> <span className="text-sm"> 登陆中 </span>
             </div>
         )
     }
@@ -332,6 +330,7 @@ export default function NotionLoginButton({ icon = false, onLogin }) {
                 <Button onClick={handleOpenNotion}>
                     <img src="/notionlogo.png" alt="notion" className={`w-5 h-5 flex-shrink-0 ${state == "waiting" && "animate-pulse"}`} />
                     {["failed", "not_start"].includes(state) && <span className="text-sm">登陆 </span>}
+                    {["waiting"].includes(state) && <span className="text-sm"> 登陆中 </span>}
                 </Button>
             ) : (
                 <>

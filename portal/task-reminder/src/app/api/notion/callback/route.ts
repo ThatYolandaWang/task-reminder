@@ -63,11 +63,16 @@ export async function GET(req: NextRequest) {
         url += "/" + tokenData.duplicated_template_id.replace(/-/g, "")
     }
 
+    if (tokenData && !tokenData.duplicated_template_id) {
+      url = "/help?status=userdefined"
+    }
 
 
     //return NextResponse.json(tokenData);
     return NextResponse.redirect(url);
   } else {
-    return NextResponse.json({ error: tokenData }, { status: 400 });
+    const url = `/help?status=error&error=${error}&error_description=${tokenData.error_description}`
+
+    return NextResponse.redirect(url);
   }
 }
