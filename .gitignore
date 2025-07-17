@@ -23,3 +23,5 @@ node_modules/
 .venv/
 
 .env
+
+yarn.lock
