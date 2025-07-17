@@ -99,28 +99,6 @@ fn save_tasks_impl(tasks: &TaskList, app: &tauri::AppHandle) -> Result<SaveResul
     })
 }
 
-async fn load_tasks_from_local_impl(app: &tauri::AppHandle) -> Result<SaveResult, String> {
-    let config_dir = load_setting_impl(app).unwrap().path;
-    let file_path = std::path::Path::new(&config_dir).join("tasks.json");
-
-    // 文件不存在时，返回空任务列表
-    if !file_path.exists() {
-        return Ok(SaveResult {
-            success: true,
-            tasks: Some(TaskList { tasks: vec![] }),
-            ..Default::default()
-        });
-    }
-    let content =
-        std::fs::read_to_string(&file_path).map_err(|e| format!("读取文件失败: {}", e))?;
-    let task_list: TaskList =
-        serde_json::from_str(&content).map_err(|e| format!("解析 JSON 失败: {}", e))?;
-    Ok(SaveResult {
-        success: true,
-        tasks: Some(task_list),
-        ..Default::default()
-    })
-}
 
 // 从notion加载任务
 pub async fn load_tasks_from_notion_impl(_app: &tauri::AppHandle) -> Result<SaveResult, String> {
@@ -128,7 +106,7 @@ pub async fn load_tasks_from_notion_impl(_app: &tauri::AppHandle) -> Result<Save
     if let Some(auth) = auth_info {
         let url = format!(
             "{}/v1/databases/{}/query",
-            dotenv::var("VITE_NOTION_API_URL").unwrap(),
+            std::env::var("VITE_NOTION_API_URL").unwrap_or_default(),
             auth.duplicated_template_id
         );
 
@@ -256,7 +234,7 @@ async fn update_task_in_notion_impl(
         // 使用 auth
         let url = format!(
             "{}/v1/pages/{}",
-            dotenv::var("VITE_NOTION_API_URL").unwrap(),
+            std::env::var("VITE_NOTION_API_URL").unwrap_or_default(),
             task.id
         );
 
@@ -329,7 +307,7 @@ async fn add_task_to_notion_impl(
 ) -> Result<SaveResult, String> {
     let auth_info = get_auth_info_from_global();
     if let Some(auth) = auth_info {
-        let url = format!("{}/v1/pages", dotenv::var("VITE_NOTION_API_URL").unwrap());
+        let url = format!("{}/v1/pages", std::env::var("VITE_NOTION_API_URL").unwrap_or_default());
 
         let mut headers = HeaderMap::new();
         headers.insert(
@@ -414,14 +392,20 @@ pub async fn load_pages(app: tauri::AppHandle) -> Result<SaveResult, String> {
 
 // 从notion加载任务
 pub async fn load_pages_from_notion_impl(_app: &tauri::AppHandle) -> Result<SaveResult, String> {
+    log::info!("load_pages_from_notion_impl");
     let auth_info = get_auth_info_from_global();
+    log::debug!("load_pages_from_notion_impl auth_info: {:?}", auth_info.is_some());
     if let Some(auth) = auth_info {
-        let url = format!(
-            "{}/v1/search",
-            dotenv::var("VITE_NOTION_API_URL").unwrap()
-        );
+
+        log::debug!("load_pages_from_notion_impl access_token: {:?}", auth.access_token);
+
+
+        let url = format!("{}/v1/search", std::env::var("VITE_NOTION_API_URL").unwrap_or_default());
+
+        log::debug!("VITE_NOTION_API_URL: {:?}", url);
 
         let mut headers = HeaderMap::new();
+
         headers.insert(
             AUTHORIZATION,
             HeaderValue::from_str(&format!("Bearer {}", auth.access_token)).unwrap(),
@@ -438,12 +422,11 @@ pub async fn load_pages_from_notion_impl(_app: &tauri::AppHandle) -> Result<Save
         match res {
             Ok(res) => {
                 let text = res.text().await.unwrap();
-                //println!("res text: {:?}", text);
                 let json: serde_json::Value = serde_json::from_str(&text).unwrap();
                 let results = match json.get("results").and_then(|v| v.as_array()) {
                     Some(arr) => arr,
                     None => {
-                        println!("解析Notion返回结果失败: {:?}", json);
+                        log::error!("解析Notion返回结果失败: {:?}", json);
                         return Ok(SaveResult {
                             success: false,
                             status: Some(json["code"].as_str().unwrap_or_default().to_string()),
@@ -451,6 +434,8 @@ pub async fn load_pages_from_notion_impl(_app: &tauri::AppHandle) -> Result<Save
                         });
                     }
                 };
+
+                log::debug!("load_pages_from_notion_impl results: {:?}", results.len());
                 let pages: Vec<Page> = results
                     .iter()
                     .map(|result| {
@@ -488,6 +473,7 @@ pub async fn load_pages_from_notion_impl(_app: &tauri::AppHandle) -> Result<Save
                     })
                     .collect();
 
+                log::info!("load_pages_from_notion_impl pages number: {:?}", pages.len());
                 return Ok(SaveResult {
                     success: true,
                     pages: Some(pages),
@@ -495,15 +481,17 @@ pub async fn load_pages_from_notion_impl(_app: &tauri::AppHandle) -> Result<Save
                 });
             }
             Err(e) => {
-                println!("error: {:?}", e);
+                log::error!("load_pages_from_notion_impl error: {:?}", e);
             }
         }
 
         //let body = res.json::<TaskList>().await?;
     }
+
+    log::error!("load_pages_from_notion_impl get_auth_info_from_global failed");
     return Ok(SaveResult {
-        success: true,
-        pages: Some(vec![]),
+        success: false,
+        status: Some("unauthorized".to_string()),
         ..Default::default()
     });
 }

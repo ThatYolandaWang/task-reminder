@@ -5,8 +5,6 @@ use std::sync::Mutex;
 use serde::{Deserialize, Serialize};
 use tauri::Manager;
 
-use serde_json::Value;
-
 pub static GLOBAL_AUTH_INFO: OnceCell<Mutex<Option<AuthInfo>>> = OnceCell::new();
 
 // 初始化程序时读取授权信息
@@ -63,6 +61,7 @@ pub fn save_auth_info(auth: AuthInfo, app: tauri::AppHandle) -> Result<SaveResul
 // 前端加载授权信息
 #[tauri::command]
 pub fn load_auth_info(app: tauri::AppHandle) -> Result<Option<AuthInfo>, String> {
+    log::info!("load_auth_info");
     let auth_info = GLOBAL_AUTH_INFO
         .get()
         .ok_or_else(|| "AuthInfo 未初始化".to_string())
@@ -73,18 +72,25 @@ pub fn load_auth_info(app: tauri::AppHandle) -> Result<Option<AuthInfo>, String>
                 .map(|guard| guard.clone())
         });
     if let Ok(Some(auth)) = auth_info {
+        log::info!("load_auth_info auth from GLOBAL_AUTH_INFO");
         return Ok(Some(auth));
     }
     let auth = load_auth_info_impl(&app).unwrap_or(None);
-    GLOBAL_AUTH_INFO.set(Mutex::new(auth.clone())).ok();
+    log::info!("load_auth_info auth from file");
+    if let Some(auth_val) = &auth {
+        if let Some(mutex) = GLOBAL_AUTH_INFO.get() {
+            let mut guard = mutex.lock().unwrap();
+            *guard = Some(auth_val.clone());
+            log::info!("load_auth_info update to GLOBAL_AUTH_INFO");
+        }
+    }
     Ok(auth)
 }
 
 // 退出登陆
 #[tauri::command]
 pub fn clear_auth_info(app: tauri::AppHandle) -> Result<SaveResult, String> {
-
-    println!("clear_auth_info");
+    log::info!("clear_auth_info");
     // 清空内存
     if let Some(mutex) = GLOBAL_AUTH_INFO.get() {
         let mut guard = mutex.lock().unwrap();
@@ -104,8 +110,8 @@ pub fn clear_auth_info(app: tauri::AppHandle) -> Result<SaveResult, String> {
 // 前端保存授权信息
 pub fn save_auth_info_impl(auth: &AuthInfo, app: &tauri::AppHandle) -> Result<SaveResult, String> {
 
-    println!("save_auth_info_impl");
-    println!("user: {}", auth.user.name);
+    log::info!("save_auth_info_impl");
+    log::info!("user: {}", auth.user.name);
     let config_dir = app.path().app_config_dir().unwrap();
 
     let file_path = config_dir.join("auth_info.json");
@@ -135,6 +141,7 @@ pub fn load_auth_info_impl(app: &tauri::AppHandle) -> Result<Option<AuthInfo>, S
         std::fs::read_to_string(&file_path).map_err(|e| format!("读取文件失败: {}", e))?;
     let auth: AuthInfo =
         serde_json::from_str(&content).map_err(|e| format!("解析 JSON 失败: {}", e))?;
+    log::info!("load_auth_info_impl: {}", auth.user.name);
     Ok(Some(auth))
 }
 
@@ -148,7 +155,7 @@ pub fn get_auth_info_from_global() -> Option<AuthInfo> {
 
 #[tauri::command]
 pub async fn select_page(id: String, app: tauri::AppHandle) -> Result<SaveResult, String> {
-
+    log::info!("select_page");
     let mut cloned_auth = None;
     if let Some(mutex) = GLOBAL_AUTH_INFO.get() {
         let mut guard = mutex.lock().map_err(|e| e.to_string())?;

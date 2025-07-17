@@ -2,7 +2,7 @@ import { useRef, useState, useEffect, useMemo } from "react";
 import { open as openShell } from "@tauri-apps/plugin-shell";
 import Button from "./components/button"
 import FileTree from "./components/pages"
-import { LoaderCircle, LogOut, Rocket } from "lucide-react"
+import { LoaderCircle, LogOut } from "lucide-react"
 import { v4 as uuidv4 } from 'uuid';
 import { fetch as fetchApi } from '@tauri-apps/plugin-http';
 import { invoke } from '@tauri-apps/api/core';
@@ -21,6 +21,7 @@ export default function NotionLoginButton({ icon = false, onLogin }) {
     const [userData, setUserData] = useState(null)
     const pollCount = useRef(0); // 轮询计数
     const [pages, setPages] = useState([])
+    const [error, setError] = useState("")
     const isInitial = useRef(false)
 
 
@@ -137,22 +138,35 @@ export default function NotionLoginButton({ icon = false, onLogin }) {
 
     // 加载页面列表
     const loadPages = async () => {
-
+        
         // 如果icon模式，不加载页面
         if (icon) return;
+
+        console.log("loadPages")
         try {
             const res = await invoke("load_pages")
             if (res.success) {
                 setPages(res.pages)
+            } else {
+                if (res.status === "unauthorized") {
+                    setError("获取认证信息失败，请尝试重新打开app")
+                }else{
+                    setError(res.status)
+                }
+                setState("failed")
+                setUserData(null)
+                
             }
         } catch (err) {
             console.error(err.toString())
+            setError(err.toString())
         }
     }
 
     // 初始化时加载数据，只执行一次
     useEffect(() => {
         if (!isInitial.current) {
+            console.log("initial load")
             loadAuthInfo()
             loadPages();
             isInitial.current = true
@@ -195,6 +209,7 @@ export default function NotionLoginButton({ icon = false, onLogin }) {
             } else {
                 setState("failed")
                 setUserData(null)
+                setPages([])
             }
         })
         return () => {
@@ -333,11 +348,13 @@ export default function NotionLoginButton({ icon = false, onLogin }) {
                     {["waiting"].includes(state) && <span className="text-sm"> 登陆中 </span>}
                 </Button>
             ) : (
-                <>
+                <div className="w-full flex flex-col items-center justify-center gap-2">
                     {state === "waiting" ? <Waiting />
                         : state === "success" ? <Success /> :
                             <NotStart />}
-                </>
+
+                    {error && <div className="text-red-500 text-sm">{error}</div>}
+                </div>
             )}
         </div>
     )

@@ -10,18 +10,45 @@ use tauri::menu::{MenuBuilder, MenuItemBuilder};
 use tauri::tray::{TrayIconBuilder, TrayIconEvent};
 use tauri::{Manager, WindowEvent};
 
+use std::env;
+use std::path::PathBuf;
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+
     tauri::Builder::default()
         // .plugin(tauri_plugin_window_state::Builder::new().build())
+        .plugin(
+            tauri_plugin_log::Builder::new()
+                .level(log::LevelFilter::Debug)
+                .rotation_strategy(tauri_plugin_log::RotationStrategy::KeepAll)
+                .build()
+        )
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(tauri_plugin_autostart::init(
             MacosLauncher::LaunchAgent,
-            Some(vec!["com.task-reminder.app"]),
+            Some(vec!["com.task-reminder"]),
         ))
         .setup(|app| {
+            // 1. 开发环境：.env 在项目根目录
+            // 2. 打包后：.env 在资源目录
+            let env_path = if cfg!(debug_assertions) {
+                // 开发环境
+                let mut path = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| ".".into()));
+                path.push(".env");
+                path
+            } else {
+                // 生产环境
+                let resource_dir = app.path().resource_dir().expect("Failed to get resource dir");
+                resource_dir.join(".env")
+            };
+
+            log::info!("env_path: {:?}", env_path);
+            dotenv::from_path(env_path).ok();
+
+            log::info!("setup");
             let toggle = MenuItemBuilder::new("Show/Hide").id("toggle").build(app)?;
             let quit = MenuItemBuilder::new("Quit").id("quit").build(app)?;
             let settings = MenuItemBuilder::new("Settings").id("settings").build(app)?;
