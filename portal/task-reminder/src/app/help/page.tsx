@@ -2,12 +2,13 @@
 import { useSearchParams } from "next/navigation";
 import Image from "next/image"
 import Link from "next/link";
+import { Suspense } from "react";
 export default function SuccessPage() {
   const params = useSearchParams();
   const status = params.get("status");
   // 使用 workspaceId 渲染或做其它逻辑
 
-  if (status === "userdefined") {
+  const UserDefined = () => {
     const template_url = process.env.NEXT_PUBLIC_NOTION_TEMPLATE_URL || "";
     return (
       <div className="flex flex-col items-center justify-center p-4">
@@ -36,7 +37,7 @@ export default function SuccessPage() {
     )
   }
 
-  if (status === "error") {
+  const Error = () => {
     const error = params.get("error");
     const error_description = params.get("error_description");
     return (
@@ -50,8 +51,16 @@ export default function SuccessPage() {
 
   return (
     
-    <div>
-      <h1>请尝试重新登陆</h1>
-    </div>
+    <Suspense fallback={<div>Loading...</div>}>
+      {status === "userdefined" ? (
+        <UserDefined />
+      ): status === "error" ? (
+        <Error />
+      ):(
+        <div>
+          <h1>请尝试重新登陆</h1>
+        </div>
+      )}
+    </Suspense>
   )
 }
