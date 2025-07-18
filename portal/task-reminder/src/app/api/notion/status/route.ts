@@ -18,6 +18,8 @@ export async function GET(req: NextRequest) {
   redis.del(state);
   redis.close();
 
+  console.log(tokenData);
+
   if (tokenData) {
 
     return NextResponse.json({ status: "success", data: JSON.parse(tokenData) });
