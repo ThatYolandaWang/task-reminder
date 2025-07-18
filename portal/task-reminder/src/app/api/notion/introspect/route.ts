@@ -27,8 +27,11 @@ export async function POST(req: NextRequest) {
 
   if (tokenRes.status === 200) {
     const data = await tokenRes.json();
+    console.log("introspect", data);
     return NextResponse.json({ status: "success", data });
   } else {
-    return NextResponse.json({ status: "error" });
+    const data = await tokenRes.json();
+    console.error("introspect error", data);
+    return NextResponse.json({ status: "error", data });
   }
 }
