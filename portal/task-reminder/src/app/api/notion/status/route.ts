@@ -18,12 +18,15 @@ export async function GET(req: NextRequest) {
   redis.del(state);
   redis.close();
 
-  console.log(tokenData);
+  
 
   if (tokenData) {
 
+    console.log({ status: "success", data: JSON.parse(tokenData) });
+
     return NextResponse.json({ status: "success", data: JSON.parse(tokenData) });
   } else {
+    console.log({ error: "No token data" }, { status: 400 });
     return NextResponse.json({ error: "No token data" }, { status: 400 });
   }
 }
