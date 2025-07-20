@@ -1,280 +1,233 @@
-import { motion } from "motion/react";
-import { Reorder } from "framer-motion";
-import { useState, useEffect, useRef, useMemo } from 'react';
-import { Plus, Info, AlarmClock } from 'lucide-react';
-import { Task } from './task';
+import { useNotionContext } from './context/NotionContext';
+import { motion, Reorder } from "framer-motion";
+import { useEffect, useState } from 'react';
+import { toast } from "sonner";
 import { invoke } from '@tauri-apps/api/core';
-import Button from './components/button';
-import Select from './components/select';
 import { v4 as uuidv4 } from 'uuid';
+import { debug, info } from '@tauri-apps/plugin-log';
+import { Task } from './task';
+import { Button } from './components/ui/button';
+import { AlarmClock, Loader, Plus } from 'lucide-react';
 import NotionLoginButton from './notion';
-
-import { emit, listen } from '@tauri-apps/api/event';
-
-const PERCENT_MODEL_ERROR = "总百分超过了100%, 请重新调整比例"
-
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './components/ui/select';
+import NotionPage from './notion-page';
 
 const remindHoursOptions = [
-  { label: '1小时', value: 1 },
-  { label: '2小时', value: 2 },
-  { label: '3小时', value: 3 }
+    { label: '1小时', value: 1 },
+    { label: '2小时', value: 2 },
+    { label: '3小时', value: 3 }
 ]
 
-export function TaskList() {
-  const isInitial = useRef(false);
-  const [error, setError] = useState("");
-  const debounceTimer = useRef(); // 防抖计时器
-  const [items, setItems] = useState([]);
-  const [remindLaterHours, setRemindLaterHours] = useState(1);
-  const debounceError = useRef(); // 防抖错误提示
-  const [modifyTaskIds, setModifyTaskIds] = useState([]);
-  const [isLogin, setIsLogin] = useState(true);
-
-  // 加载本地任务
-  useEffect(() => {
-
-    if (!isInitial.current) {
-      loadTasks()
-      isInitial.current = true
-    }
-  }, [])
-
-  async function loadTasks() {
-    try {
-      const res = await invoke("load_tasks")
-
-      if (res.success) {
-        setItems(res.tasks.tasks.map(item => ({ ...item, localId: item.id })))
-      } else {
-        if (res.status == "unauthorized") {
-          console.log("get task list unauthorized send 'login false'")
-          emit("login", false)
-        } else if (res.status == "validation_error") {
-          setError("数据库格式错误，请重新登陆并选择以模板创建的数据库")
-        } else {
-          setError("加载失败！")
-        }
-      }
-    } catch (err) {
-      setError(err)
-    }
-  }
-
-  useEffect(() => {
-
-    const unlistenPromiseLogin = listen('login', (event) => {
-      console.log("task login", event.payload)
-      // 这里只做登录状态更新，不再 emit
-      setIsLogin(event.payload);
-    });
-
-    const unlistenPromisePage = listen('change_page', (event) => {
-      console.log("task change_page", event.payload)
-      // 这里只做登录状态更新，不再 emit
-      loadTasks();
-    });
-
-    return () => {
-      unlistenPromiseLogin.then(unlisten => unlisten());
-      unlistenPromisePage.then(unlisten => unlisten());
-    };
-  }, [])
-
-  //修改任务和百分比
-  const handleChange = (localId, newText, newPercent) => {
-    setItems(items =>
-      items.map(item =>
-        item.localId === localId
-          ? { ...item, text: newText, percent: Number(newPercent) }
-          : item
-      )
-    );
-    setModifyTaskIds(prevIds => [...prevIds, localId]);
-  };
-
-  // 添加任务
-  async function handleAddTask() {
-
-    const newTask = { id: "", localId: "new-" + uuidv4(), text: '', percent: taskList.length == 0 ? 50 : 0, status: '未开始', createtime: '' }
-    setItems(items => [...items, newTask])
-    setModifyTaskIds(prevIds => [...prevIds, newTask.localId])
-  }
-
-  // 完成任务
-  async function handleFinish(localId) {
-    setItems(items => items.map(item => item.localId === localId ? { ...item, status: '完成' } : item))
-    setModifyTaskIds(prevIds => [...prevIds, localId])
-  }
-
-
-  // 定时器重新计算排序, 保存，2s延时
-  useEffect(() => {
-    if (debounceTimer.current) clearTimeout(debounceTimer.current);
-    debounceTimer.current = setTimeout(() => {
-
-      const totalPercent = items.reduce((acc, item) => acc + item.percent, 0);
-      setError(totalPercent > 100 ? PERCENT_MODEL_ERROR : "");
-      // saveTasks(items);
-
-      syncTasksToNotion();
-    }, 2000);
-
-    return () => clearTimeout(debounceTimer.current);
-  }, [items]);
-
-
-  // 定时清空错误的提示（显示10s）
-  useEffect(() => {
-    if (debounceError.current) clearTimeout(debounceError.current);
-    debounceError.current = setTimeout(() => {
-      setError("")
-    }, 10000);
-  }, [error])
-
-
-  // 保存tasks到本地
-  // async function saveTasks(tasks) {
-  //   try {
-  //     await invoke("save_tasks", {
-  //       tasks: { tasks: tasks }
-  //     })
-  //   } catch (err) {
-  //     setError(err)
-  //   }
-  // }
-
-  async function syncTasksToNotion() {
-    modifyTaskIds.forEach(async (localId) => {
-      try {
-
-        console.log("localId", localId)
-        // 如果id为空，则添加任务
-        if (items.find(item => item.localId === localId).id === "") {
-          const res = await invoke("add_task", {
-            task: items.find(item => item.localId === localId)
-          })
-
-          console.log(res)
-          if (res.success) {
-            // 更新id
-            setItems(items => items.map(item => item.localId === localId ? { ...item, id: res.id } : item))
-            setModifyTaskIds(prevIds => prevIds.filter(localId => localId !== localId))
-          } else {
-            setError("同步失败")
-          }
-        } else { // 如果id不为空，则更新任务
-          const res = await invoke("update_task", {
-            task: items.find(item => item.localId === localId)
-          })
-          console.log(res)
-          if (res.success) {
-            setModifyTaskIds(prevIds => prevIds.filter(id => id !== id))
-            if (items.find(item => item.localId === localId).status === "完成") {
-              setItems(items => items.filter(item => item.localId !== localId))
-            }
-          } else {
-            setError("同步失败")
-          }
-        }
-      } catch (err) {
-        console.log(err)
-      }
-    })
-  }
-
-  async function remindLater() {
-    try {
-      await invoke("set_remind_later", {
-        hours: Number(remindLaterHours)
-      })
-    } catch (err) {
-      setError(err)
-    }
-  }
-
-  // 获取未开始任务列表, 按 percent 降序排序，缓存，提高性能，之后定时同步更新
-  const taskList = useMemo(() => {
-    return items.filter(item => item.status === '未开始').sort((a, b) => b.percent - a.percent)
-  }, [items])
-
-
-
-  return (
-    <>
-      <div className='flex flex-col items-center justify-center h-full'>
-
-        {/* 错误提示 */}
-
-        <div className="w-full flex justify-center items-center gap-2 animate-pulse h-4">
-          {error &&
-            <>
-              <Info size={16} />
-              <div className='text-sm text-gray-500 overflow-hidden text-ellipsis whitespace-nowrap'>{error}</div>
-            </>
-          }
-        </div>
-
-
-        {!isInitial.current ? (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 1, delay: 1 }}
-            className="flex-1 w-full flex flex-col items-center justify-center gap-2 pt-4 h-20">
-            <div className='text-sm text-gray-500 text-center animate-pulse'>请你记下今天最重要的三件事，全力以赴，完成它</div>
-          </motion.div>
-        ) : (
-
-          <div className="flex flex-col justify-center items-center w-full relative h-full">
-
-            {/* 事件列表 */}
-            {taskList.length > 0 ? (
-              <div className="overflow-y-auto h-[calc(100vh-60px)] w-full mt-4 ">
-                <Reorder.Group axis="y" values={taskList} onReorder={setItems} className="w-full px-4 space-y-2 flex flex-col items-center justify-center">
-                  {taskList.map((item, index) => (
-                    <Task key={item.localId} item={item} onChangeValue={handleChange} index={index} handleFinish={handleFinish} />
-                  ))}
-                </Reorder.Group>
-              </div>
-            ) :
-              (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 1 }}
-                  className="text-sm text-gray-500 text-center flex items-center justify-center">请你记下今天最重要的三件事，全力以赴，完成它</motion.div>
-              )}
-
-
-            <div className="w-full flex justify-between items-center p-2 sticky bottom-0 bg-white">
-              {taskList.length > 0 && <div className="flex flex-row items-center gap-2">
-                <Button onClick={remindLater}>
-                  <AlarmClock className="flex-shrink-0" size={16} /> <span className="text-ellipsis whitespace-nowrap">稍后提醒</span>
-                </Button>
-
-                <Select options={remindHoursOptions} value={remindLaterHours} onChange={e => setRemindLaterHours(e.target.value)} />
-              </div>
-              }
-
-              <div className={`flex-1 flex flex-row ${taskList.length == 0 ? "justify-center" : "justify-end"}`}>
-
-
-                {/* 添加任务按钮 */}
-                {isLogin && <Button onClick={handleAddTask}>
-                  <Plus size={16} /> <span className="flex-shrink-0">添加任务</span>
-                </Button>
-                }
-
-                <NotionLoginButton icon={true} onLogin={() => setIsLogin(true)} />
-              </div>
-            </div>
-
-          </div>
-        )}
-      </div>
-    </>
-  )
+function getLocalISOStringWithTZ() {
+    const date = new Date();
+    const tzo = -date.getTimezoneOffset();
+    const dif = tzo >= 0 ? '+' : '-';
+    const pad = n => `${Math.floor(Math.abs(n))}`.padStart(2, '0');
+    return date.getFullYear() +
+        '-' + pad(date.getMonth() + 1) +
+        '-' + pad(date.getDate()) +
+        'T' + pad(date.getHours()) +
+        ':' + pad(date.getMinutes()) +
+        ':' + pad(date.getSeconds()) +
+        dif + pad(tzo / 60) +
+        ':' + pad(tzo % 60);
 }
 
+export default function TaskList() {
+    const { state, authInfo } = useNotionContext();
+    const [items, setItems] = useState([]);
+    const [remindLaterHours, setRemindLaterHours] = useState(1);
+    const [isLoading, setIsLoading] = useState(true);
+    // 加载本地任务
+    useEffect(() => {
+
+        if (state === "success" && authInfo?.duplicated_template_id) {
+            info("tasklist state:" + state)
+            loadTasks()
+        } else if (state === "failed") {
+            setIsLoading(false)
+            toast.error("token 已过期，请重新登陆")
+        }
+    }, [state, authInfo])
+
+    const loadTasks = async () => {
+        try {
+
+            setIsLoading(true)
+            info("loadTasks")
+            const res = await invoke("load_tasks")
+
+            debug("loadTasks res:" + JSON.stringify(res))
+
+            if (res.success) {
+                setItems(res.tasks.tasks.map(item => ({ ...item, localId: item.id })));
+
+            } else {
+                if (res.status == "unauthorized") {
+                    toast.error("请重新登陆, unauthorized")
+                } else if (res.status == "validation_error") {
+                    toast.error("数据库格式错误，请重新登陆并选择以模板创建的数据库")
+                } else {
+                    toast.error("加载失败！")
+                }
+            }
+        } catch (err) {
+            toast.error(err.message)
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
+
+    const handleAddTask = async () => {
+        const newTask = {
+            localId: "new-" + uuidv4(),
+            text: "",
+            status: "未开始",
+            percent: items.length == 0 ? 50 : 0,
+            id: "",
+            time: {
+                start: getLocalISOStringWithTZ(),
+                end: null,
+                // time_zone: Intl.DateTimeFormat().resolvedOptions().timeZone
+            }
+        }
+
+        console.log("newTask", newTask)
+        setItems(prevItems => [...prevItems, newTask])
+
+        const res = await invoke("add_task", {
+            task: newTask
+        })
+        if (res.success) {
+            newTask.id = res.id
+        } else {
+            toast.error(res.message)
+            setItems(prevItems => prevItems.filter(item => item.localId == newTask.localId))
+        }
+    }
+
+    const handleChangeTask = async (localId, newTask) => {
+
+        const oldItem = items.find(item => item.localId === localId)
+
+        if (newTask.status === "完成") {
+            newTask.time.end = getLocalISOStringWithTZ()
+        }
+
+        setItems(prevItems => prevItems.map(item => item.localId === localId ? newTask : item))
+
+        const res = await invoke("update_task", {
+            task: newTask
+        })
+        if (res.success) {
+            if (newTask.status === "完成") {
+                setItems(prevItems => prevItems.filter(item => item.localId !== localId))
+            }
+        } else {
+            // 如果失败，则恢复原来的任务
+            toast.error(res.message)
+            setItems(prevItems => [...prevItems, oldItem])
+        }
+
+        orderItems()
+    }
+
+    const orderItems = () => {
+        setItems(prevItems => [...prevItems].sort((a, b) => Number(b.percent) - Number(a.percent)))
+    }
+
+
+    async function remindLater() {
+        try {
+            await invoke("set_remind_later", {
+                hours: Number(remindLaterHours)
+            })
+        } catch (err) {
+            toast.error(err.message)
+        }
+    }
+    return (
+        <div className="flex flex-col relative h-full p-2">
+
+            {items.length > 0 ? (
+                <>
+                    <Reorder.Group
+                        values={items}
+                        onReorder={setItems}
+                        className='flex-1 overflow-y-scroll ps-2'>
+                        {items.filter(item => item.status === '未开始').map((item, idx) => (
+                            <Task key={item.localId} item={item} onChangeValue={handleChangeTask} index={idx} />
+                        ))}
+                    </Reorder.Group>
+
+                    <div className="w-full flex flex-row sticky bottom-0 bg-white justify-between">
+                        <div className="flex flex-row gap-1">
+
+                            {state == "success" && (
+                                <>
+                                    <NotionPage />
+
+                                    {items.length > 0 &&
+                                        <>
+                                            <Button variant="ghost" onClick={remindLater}>
+                                                <AlarmClock className="flex-shrink-0" size={16} /> <span className="text-ellipsis whitespace-nowrap">稍后提醒</span>
+                                            </Button>
+
+
+                                            {/*  options={remindHoursOptions} value={remindLaterHours} onChange={e => setRemindLaterHours(e.target.value)} */}
+                                            <Select value={remindLaterHours} onValueChange={setRemindLaterHours}>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="稍后提醒" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {remindHoursOptions.map(option => (
+                                                        <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </>
+                                    }
+                                </>
+                            )}
+                        </div>
+
+                        <div className="flex flex-row">
+                            <Button variant="ghost" onClick={handleAddTask}>
+                                <Plus size={16} /> <span>添加任务</span>
+                            </Button>
+                            <NotionLoginButton />
+                        </div>
+                    </div>
+                </>
+            ) : (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.5 }}
+                    className="flex flex-col items-center justify-center flex-1">
+                    <div className="text-sm text-gray-500 text-center animate-pulse">请你记下今天最重要的三件事，全力以赴，完成它</div>
+
+                    <div className="flex flex-row items-center h-10">
+
+                        {isLoading ? (
+                            <div className="text-sm text-gray-500 text-center flex flex-row items-center gap-2"><Loader className="animate-spin" size={16} /> 加载中...</div>
+                        ) : (
+                            <>
+                                {state == "success" && (
+                                    <Button variant="ghost" onClick={handleAddTask}>
+                                        <Plus size={16} /> <span>添加任务</span>
+                                    </Button>
+                                )}
+                                < NotionLoginButton />
+                            </>
+                        )}
+
+
+                    </div>
+                </motion.div>
+            )}
+        </div>
+    )
+}

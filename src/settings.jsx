@@ -1,18 +1,22 @@
 import { motion } from "motion/react";
 import { useState, useEffect, useRef } from "react"
 
-import Slider from "./components/slider"
-import Input from "./components/input"
+import { Switch } from "@/components/ui/switch"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Label } from "@/components/ui/label"
 import NotionLoginButton from "./notion"
+import NotionPage from "./notion-page"
 import { invoke } from '@tauri-apps/api/core';
-
-import { Info } from "lucide-react"
+import { useNotionContext } from "./context/NotionContext";
+import { toast } from "sonner";
 
 export default function Settings() {
 
-  const [error, setError] = useState("")
+  const { state, authInfo, logout } = useNotionContext();
+
   const [isOn, setIsOn] = useState(false)
-  const [isLogin, setIsLogin] = useState(true)
+
 
   const [setting, setSetting] = useState({
     remind_time: 10,
@@ -24,7 +28,7 @@ export default function Settings() {
   useEffect(() => {
     loadSetting()
     getAutostart()
-  }, [isLogin])
+  }, [])
 
   async function loadSetting() {
 
@@ -32,7 +36,7 @@ export default function Settings() {
       const setting = await invoke('load_setting');
       setSetting(setting)
     } catch (error) {
-      setError(error)
+      toast.error(error)
     }
   }
 
@@ -67,10 +71,8 @@ export default function Settings() {
     try {
       console.log(setting)
       await invoke('save_setting', { setting })
-
-      setError("")
     } catch (error) {
-      setError(error)
+      toast.error(error)
     }
   }
 
@@ -83,38 +85,47 @@ export default function Settings() {
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
         className="w-full flex flex-col items-center justify-center gap-2 pt-4">
-        <div className='font-bold text-2xl text-center'>配置</div>
+        <div className='font-bold text-center'>配置</div>
       </motion.div>
 
       <div className="flex-1 flex flex-col gap-4 w-full">
+        <div className="flex flex-row justify-between items-center gap-2">
+          {state === "success" &&
+            <div className="flex flex-row items-center gap-2">
+              <div className="bg-gray-200 rounded-full w-6 h-6 flex items-center justify-center">
+                <span className="text-gray-500 text-xs">{authInfo.user.name.slice(0, 1).toUpperCase() || "U"}</span>
+              </div>
+              <div className="text-sm text-ellipsis whitespace-nowrap">{authInfo.user.name}</div>
+            </div>
+          }
+          <NotionLoginButton />
+        </div>
+        <div className="flex flex-row items-center justify-between gap-2">
+          <Label htmlFor="autostart">开启自动启动</Label>
+          <Switch id="autostart" checked={isOn} onCheckedChange={setAutostart} />
+        </div>
 
-        <NotionLoginButton onLogin={() => setIsLogin(true)} />
+        <div className="flex flex-row items-center justify-between gap-2">
+          <Label htmlFor="remind_time" className="text-ellipsis whitespace-nowrap">提醒频率(min)</Label>
+          <Input id="remind_time" value={setting.remind_time} type="text" inputMode="decimal" pattern="\d*" onChange={
+            (e) => {
+              let v = e.target.value.replace(/\D/g, "");
+              setSetting({ ...setting, remind_time: Number(v) })
+            }}
+          />
+        </div>
 
-        <Slider label="开启自动启动" isOn={isOn} setIsOn={setAutostart} />
-
-        <Input label="定期提醒时间（分钟）" value={setting.remind_time} type="text" inputMode="decimal" pattern="\d*" onChange={
-          (e)=>{
-            let v = e.target.value.replace(/\D/g, "");
-            setSetting({ ...setting, remind_time: Number(v) })
-          }}
-        />
-
-      </div>
-      {/* 错误提示 */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 1 }}
-        className="w-full flex justify-end items-center h-10 gap-2 sticky bottom-0">
-        {error &&
+        {state === "success" && (
           <>
-            <Info size={16} />
-            <div className='text-sm text-gray-500 overflow-hidden text-ellipsis whitespace-nowrap'>{error}</div>
-          </>
-        }
-      </motion.div>
+            <div className="flex flex-row items-center justify-between gap-2">
+              <Label htmlFor="notion_page" className="text-ellipsis whitespace-nowrap">任务列表</Label>
+              <NotionPage />
+            </div>
 
+            <Button variant="ghost" onClick={logout}>退出登录</Button>
+          </>
+        )}
+      </div>
 
     </div>
   );

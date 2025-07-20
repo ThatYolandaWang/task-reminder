@@ -12,6 +12,8 @@
     "autostart:allow-enable",
     "autostart:allow-disable",
     "shell:default",
+    "log:default",
+    "log:allow-log",
     {
       "identifier": "http:default",
       "allow": [

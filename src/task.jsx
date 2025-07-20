@@ -1,17 +1,22 @@
-import { useRef,useEffect, useState } from "react";
+import React, { useRef,useEffect, useState } from "react";
 import { useMotionValue, Reorder, useDragControls } from "framer-motion";
 import { useRaisedShadow } from "./use-raised-shadow";
 import { Grip, ChartPie, Target, Check } from 'lucide-react';
-import Button  from "./components/button";
+import { Button } from "@/components/ui/button";
 
 
-export const Task = ({ item, onChangeValue, index, handleFinish }) => {
+export const Task = React.memo(function Task({ item, onChangeValue, index }) {
 
     const [taskItem, setTaskItem] = useState(item);
     const y = useMotionValue(0);
     const boxShadow = useRaisedShadow(y);
     const dragControls = useDragControls();
     const textareaRef = useRef(null);
+
+    useEffect(() => {
+        console.log("task item", item)
+        setTaskItem(item);
+    }, [item]);
 
     useEffect(() => {
         if (textareaRef.current) {
@@ -22,16 +27,17 @@ export const Task = ({ item, onChangeValue, index, handleFinish }) => {
 
     return (
         <Reorder.Item
-            value={taskItem}
-            id={taskItem.localId}
+            // id={item.localId}
+            // key={item}
+            value={item}
             style={{ boxShadow, y }}
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            exit={{ scale: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             transition={{ duration: 0.5 }}
             dragListener={false}
             dragControls={dragControls}
-            className="flex flex-row w-full justify-between items-center gap-2 min-h-10 border-b border-gray-200 p-2 rounded-md bg-white  select-none"
+            className="flex flex-row w-full py-2 justify-between items-center gap-2 min-h-10 border-b border-gray-200 rounded-md bg-white  select-none"
         >
             {/* logo. 根据index 显示不同的颜色 */}
             <div className={`${index === 0 ? 'text-red-500' : index === 1 ? 'text-amber-500' : 'text-green-500'} flex flex-row items-center gap-2 w-12`}>
@@ -49,7 +55,11 @@ export const Task = ({ item, onChangeValue, index, handleFinish }) => {
                 // el.style.height = el.scrollHeight + 'px'; // 设置为内容高度
             }}
             onBlur={() => {
-                taskItem.text !== item.text && onChangeValue(taskItem.localId, taskItem.text, taskItem.percent)
+                if (taskItem.text !== item.text) {
+                    const newTask = { ...taskItem, text: taskItem.text }
+                    setTaskItem(newTask)
+                    onChangeValue(taskItem.localId, newTask)
+                }
             }}
             />
 
@@ -61,28 +71,35 @@ export const Task = ({ item, onChangeValue, index, handleFinish }) => {
                     setTaskItem({ ...taskItem, percent: v })
                 }} 
                 onBlur={() => {
-                    let v = taskItem.percent.replace(/^0+(?=\d)/, "");
+                    let v = String(taskItem.percent).replace(/^0+(?=\d)/, 0);
                     if (v === "") {
-                        v = "0";
+                        v = 0;
                     }
-                    
-                    setTaskItem({ ...taskItem, percent: v })
-                    
-                    taskItem.percent !== item.percent && onChangeValue(taskItem.localId, taskItem.text, v)
+                    if (Number(v) !== taskItem.percent) {
+                        const newTask = { ...taskItem, percent: Number(v) }
+                        setTaskItem(newTask)
+                        onChangeValue(taskItem.localId, newTask)
+                    }
                     }}/>
             </div>
 
             {/* 拖拽 */}
-            {/* <div className="reorder-handle cursor-grab "
+            <div className="reorder-handle cursor-grab "
                 onPointerDown={(e) => dragControls.start(e)}
             >
                 <Grip size={16} />
-            </div> */}
+            </div>
 
             {/* 完成按钮 */}
-            <Button onClick={() => handleFinish(taskItem.localId)}>
+            <Button size="icon" variant="ghost" onClick={() => {
+
+                const newTask = { ...taskItem, status: "完成" }
+                setTaskItem(newTask)
+                onChangeValue(taskItem.localId, newTask)
+            }}>
                 <Check size={16} />
             </Button>
         </Reorder.Item>
     );
-}
+});
+

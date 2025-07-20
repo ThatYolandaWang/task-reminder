@@ -9,12 +9,19 @@ use tauri_plugin_http::reqwest;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
+pub struct Time {
+    pub start: String,
+    pub end: Option<String>,
+    pub time_zone: Option<String>,
+}
+
+#[derive(Serialize, Deserialize)]
 pub struct Task {
     pub id: String,
     pub text: String,
     pub percent: u32,
     pub status: String,
-    pub createtime: String,
+    pub time: Time,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -125,9 +132,9 @@ pub async fn load_tasks_from_notion_impl(_app: &tauri::AppHandle) -> Result<Save
                 "filter": {
                     "and": [
                         {
-                            "property": "createtime",
+                            "property": "time",
                             "date": {
-                                "after": today
+                                "on_or_after": today
                             }
                         },
                         {
@@ -147,7 +154,13 @@ pub async fn load_tasks_from_notion_impl(_app: &tauri::AppHandle) -> Result<Save
                             ]
                         }
                     ]
-                }
+                },
+                "sorts": [
+                    {
+                        "property": "percent",
+                        "direction": "descending"
+                    }
+                ]
             }
         );
 
@@ -192,14 +205,25 @@ pub async fn load_tasks_from_notion_impl(_app: &tauri::AppHandle) -> Result<Save
                             .as_str()
                             .unwrap_or_default();
 
-                        let createtime = result["created_time"].as_str().unwrap_or_default();
+                        let time = Time {
+                            start: result["properties"]["time"]["date"]["start"]
+                                .as_str()
+                                .unwrap_or_default()
+                                .to_string(),
+                            end: result["properties"]["time"]["date"]["end"]
+                                .as_str()
+                                .map(|s| s.to_string()),
+                            time_zone: result["properties"]["time"]["date"]["time_zone"]
+                                .as_str()
+                                .map(|s| s.to_string()),
+                        };
 
                         Task {
                             id: id.to_string(),
                             text: text.to_string(),
                             percent: percent as u32,
                             status: status.to_string(),
-                            createtime: createtime.to_string(),
+                            time: time,
                         }
                     })
                     .collect();
@@ -268,6 +292,14 @@ async fn update_task_in_notion_impl(
                     "status": {
                         "name": task.status
                     }
+                },
+                "time": {
+                    "type": "date",
+                    "date": {
+                        "start": task.time.start,
+                        "end": task.time.end,
+                        "time_zone": task.time.time_zone
+                    }
                 }
             }
         });
@@ -333,9 +365,29 @@ async fn add_task_to_notion_impl(
                             }
                         }
                     ]
+                },
+                "percent": {
+                    "type": "number",
+                    "number": task.percent
+                },
+                "status": {
+                    "type": "status",
+                    "status": {
+                        "name": task.status
+                    }
+                },
+                "time": {
+                    "type": "date",
+                    "date": {
+                        "start": task.time.start,
+                        "end": task.time.end,
+                        "time_zone": task.time.time_zone
+                    }
                 }
             }
         });
+
+        log::debug!("add_task_to_notion_impl body: {:?}", body);
 
         let res = reqwest::Client::new()
             .post(url)
@@ -413,9 +465,21 @@ pub async fn load_pages_from_notion_impl(_app: &tauri::AppHandle) -> Result<Save
         headers.insert("Notion-Version", HeaderValue::from_static("2022-06-28"));
         headers.insert("Content-Type", HeaderValue::from_static("application/json"));
 
+        let body = json!({
+            "filter": {
+                "value": "database",
+                "property": "object"
+            },
+            "sort": {
+                "direction": "ascending",
+                "timestamp": "last_edited_time"
+            }
+        });
+
         let res = reqwest::Client::new()
             .post(url)
             .headers(headers)
+            .body(serde_json::to_string(&body).unwrap())
             .send()
             .await;
 
