@@ -1,19 +1,15 @@
 {
-    "version": "1.1.2",
-    "notes": "1.1.2",
-    "pub_date": "2025-07-21T12:00:00+02:00",
-    "platforms": {
-      "windows-x86_64": {
-        "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSaFlicjFqc1JrNUpsMUZrNDM4WjNYVVI4TDBSTzNab2xIOFluRk1IZytGWE1OZ29HODFCOWtlbTVtUWtzMTJsYkwrcFNXSnNsN1pDYXJ3ajVpaXZRdnlrQVNpR2tTTUE0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzUzMDMyMTEwCWZpbGU6dGFzay1yZW1pbmRlci5hcHAudGFyLmd6CjZIWVNkd0JWWVpsY1JYODZnSEpDZFVlaUFwMGJ2bWpPUGZVNGs4UWp1SGkrUHBUVXp5eGM4M2FLLzl3Ky9ETlZnK3pIQ09TUm5LcTFVOE5WQTlBZEN3PT0K",
-        "url": "https://github.com/ThatYolandaWang/task-reminder/releases/download/1.1.2/task-reminder.app.tar.gz"
-      },
-      "darwin-x86_64": {
-        "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSaFlicjFqc1JrNUpsMUZrNDM4WjNYVVI4TDBSTzNab2xIOFluRk1IZytGWE1OZ29HODFCOWtlbTVtUWtzMTJsYkwrcFNXSnNsN1pDYXJ3ajVpaXZRdnlrQVNpR2tTTUE0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzUzMDMyMTEwCWZpbGU6dGFzay1yZW1pbmRlci5hcHAudGFyLmd6CjZIWVNkd0JWWVpsY1JYODZnSEpDZFVlaUFwMGJ2bWpPUGZVNGs4UWp1SGkrUHBUVXp5eGM4M2FLLzl3Ky9ETlZnK3pIQ09TUm5LcTFVOE5WQTlBZEN3PT0K",
-        "url": "https://github.com/ThatYolandaWang/task-reminder/releases/download/1.1.2/task-reminder.app.tar.gz"
-      },
-      "darwin-aarch64": {
-        "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSaFlicjFqc1JrNUNmVjJiNU9hRW1vT2hnSWNka1BuaXNLTkFjLzZKaFl5WDN3RzFZZFp3bktNK2xlSWlxdmNGeU5md3pVZzFqV1NpSU5FampNSjNmd2JhT2F2c29zQ2dNPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzUzMDk1OTg1CWZpbGU6dGFzay1yZW1pbmRlci5hcHAudGFyLmd6Ckpiai9PL3pDcHhYYWRidWs1ZWlkamVRRkJ4a1BOd3ZkZ05nalJqSW1ERVlIT0FXRU5pNFBFcDBKcHJBQUFIZjNBTUNmSnNYUWxGOGFnZS93U2ZaQkRnPT0K",
-        "url": "https://github.com/ThatYolandaWang/task-reminder/releases/download/1.1.2/task-reminder.app.tar.gz"
-      }
+  "version": "1.1.3",
+  "notes": "1.1.2",
+  "pub_date": "2025-07-21T12:29:19.093Z",
+  "platforms": {
+    "windows-x86_64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSaFlicjFqc1JrNUpsMUZrNDM4WjNYVVI4TDBSTzNab2xIOFluRk1IZytGWE1OZ29HODFCOWtlbTVtUWtzMTJsYkwrcFNXSnNsN1pDYXJ3ajVpaXZRdnlrQVNpR2tTTUE0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzUzMDMyMTEwCWZpbGU6dGFzay1yZW1pbmRlci5hcHAudGFyLmd6CjZIWVNkd0JWWVpsY1JYODZnSEpDZFVlaUFwMGJ2bWpPUGZVNGs4UWp1SGkrUHBUVXp5eGM4M2FLLzl3Ky9ETlZnK3pIQ09TUm5LcTFVOE5WQTlBZEN3PT0K",
+      "url": "https://github.com/ThatYolandaWang/task-reminder/releases/download/1.1.2/task-reminder.app.tar.gz"
+    },
+    "darwin-aarch64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSaFlicjFqc1JrNUNmVjJiNU9hRW1vT2hnSWNka1BuaXNLTkFjLzZKaFl5WDN3RzFZZFp3bktNK2xlSWlxdmNGeU5md3pVZzFqV1NpSU5FampNSjNmd2JhT2F2c29zQ2dNPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzUzMDk1OTg1CWZpbGU6dGFzay1yZW1pbmRlci5hcHAudGFyLmd6Ckpiai9PL3pDcHhYYWRidWs1ZWlkamVRRkJ4a1BOd3ZkZ05nalJqSW1ERVlIT0FXRU5pNFBFcDBKcHJBQUFIZjNBTUNmSnNYUWxGOGFnZS93U2ZaQkRnPT0K",
+      "url": "https://github.com/ThatYolandaWang/task-reminder/releases/download/1.1.3/task-reminder.app.tar.gz"
     }
   }
+}

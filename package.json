@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "package": "node script/build.js build"
   },
   "dependencies": {
     "@radix-ui/react-label": "^2.1.7",
@@ -41,9 +42,12 @@
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.6.0",
+    "cross-spawn": "^7.0.6",
     "eslint": "^9.30.1",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
+    "fs-extra": "^11.3.0",
+    "glob": "^11.0.3",
     "globals": "^16.3.0",
     "tw-animate-css": "^1.3.5",
     "vite": "^7.0.4"
