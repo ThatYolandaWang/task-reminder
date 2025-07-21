@@ -37,7 +37,7 @@ export default function TaskList() {
     const { state, authInfo } = useNotionContext();
     const [items, setItems] = useState([]);
     const [remindLaterHours, setRemindLaterHours] = useState(1);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(false);
     // 加载本地任务
     useEffect(() => {
 

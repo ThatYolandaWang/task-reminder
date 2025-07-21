@@ -11,6 +11,10 @@ import { invoke } from '@tauri-apps/api/core';
 import { useNotionContext } from "./context/NotionContext";
 import { toast } from "sonner";
 
+import { getVersion } from '@tauri-apps/api/app';
+import { check } from '@tauri-apps/plugin-updater';
+import { relaunch } from '@tauri-apps/plugin-process';
+
 export default function Settings() {
 
   const { state, authInfo, logout } = useNotionContext();
@@ -24,8 +28,11 @@ export default function Settings() {
 
   const debounceTimer = useRef(); // 防抖计时器
 
+  const [version, setVersion] = useState("")
+
 
   useEffect(() => {
+
     loadSetting()
     getAutostart()
   }, [])
@@ -33,6 +40,10 @@ export default function Settings() {
   async function loadSetting() {
 
     try {
+
+      const version = await getVersion()
+      setVersion(version)
+
       const setting = await invoke('load_setting');
       setSetting(setting)
     } catch (error) {
@@ -73,6 +84,46 @@ export default function Settings() {
       await invoke('save_setting', { setting })
     } catch (error) {
       toast.error(error)
+    }
+  }
+
+  const checkUpdate = async () => {
+
+    try {
+
+
+      const update = await check()
+      if (update) {
+        toast.info(
+          `发现新版本 ${update.version}，更新内容：${update.body}`
+        )
+        let downloaded = 0;
+        let contentLength = 0;
+        // alternatively we could also call update.download() and update.install() separately
+        await update.downloadAndInstall((event) => {
+          switch (event.event) {
+            case 'Started':
+              contentLength = event.data.contentLength;
+              console.log(`started downloading ${event.data.contentLength} bytes`);
+              break;
+            case 'Progress':
+              downloaded += event.data.chunkLength;
+              console.log(`downloaded ${downloaded} from ${contentLength}`);
+              break;
+            case 'Finished':
+              console.log('download finished');
+              break;
+          }
+        });
+
+        toast.success('更新已安装，正在重启应用');
+        await relaunch();
+      }
+      else {
+        toast.info('当前已是最新版本')
+      }
+    } catch (error) {
+      toast.error("检查更新失败:" + error)
     }
   }
 
@@ -125,8 +176,14 @@ export default function Settings() {
             <Button variant="ghost" onClick={logout}>退出登录</Button>
           </>
         )}
-      </div>
 
+
+      </div>
+      <div className="flex flex-col items-center justify-between p-2">
+
+        <div className="text-sm text-ellipsis whitespace-nowrap text-gray-500">版本: {version}</div>
+        <Button variant="ghost" onClick={checkUpdate}>检查更新</Button>
+      </div>
     </div>
   );
 }

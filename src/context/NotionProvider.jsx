@@ -69,7 +69,7 @@ export default function NotionProvider({ children }) {
                 setAuthInfo(authInfo)
                 checkToken(authInfo)
             } else {
-                error("loadAuthInfo failed")
+                info("loadAuthInfo empty")
                 setState("not_start")
             }
         } catch (err) {

@@ -15,14 +15,15 @@ use std::path::PathBuf;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-
     tauri::Builder::default()
+        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         // .plugin(tauri_plugin_window_state::Builder::new().build())
         .plugin(
             tauri_plugin_log::Builder::new()
                 .level(log::LevelFilter::Debug)
                 .rotation_strategy(tauri_plugin_log::RotationStrategy::KeepAll)
-                .build()
+                .build(),
         )
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_shell::init())
@@ -32,16 +33,21 @@ pub fn run() {
             Some(vec!["com.task-reminder"]),
         ))
         .setup(|app| {
+
+            // 初始化环境变量
             // 1. 开发环境：.env 在项目根目录
             // 2. 打包后：.env 在资源目录
             let env_path = if cfg!(debug_assertions) {
-                // 开发环境
-                let mut path = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| ".".into()));
-                path.push(".env");
-                path
+                // 开发环境：.env 在项目根目录
+                PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap())
+                .parent().unwrap()
+                .join(".env")
             } else {
                 // 生产环境
-                let resource_dir = app.path().resource_dir().expect("Failed to get resource dir");
+                let resource_dir = app
+                    .path()
+                    .resource_dir()
+                    .expect("Failed to get resource dir");
                 resource_dir.join(".env")
             };
 
@@ -49,6 +55,8 @@ pub fn run() {
             dotenv::from_path(env_path).ok();
 
             log::info!("setup");
+
+            // 初始化菜单
             let toggle = MenuItemBuilder::new("Show/Hide").id("toggle").build(app)?;
             let quit = MenuItemBuilder::new("Quit").id("quit").build(app)?;
             let settings = MenuItemBuilder::new("Settings").id("settings").build(app)?;
@@ -78,10 +86,23 @@ pub fn run() {
                         }
                     }
                     "settings" => {
-                        // 显示设置窗口
-                        let settings = app.get_webview_window("settings").unwrap();
-                        settings.show().unwrap();
-                        settings.set_focus().unwrap();
+                        // 检查是否已存在 settings 窗口
+                        if let Some(win) = app.get_webview_window("settings") {
+                            win.show().unwrap();
+                            win.set_focus().unwrap();
+                        } else {
+                            // 不存在则新建
+                            tauri::WebviewWindowBuilder::new(
+                            app,
+                            "settings", // 窗口唯一标识
+                            tauri::WebviewUrl::App("#/settings".into()),
+                            )
+                            .inner_size(300.0, 600.0)
+                            .title("设置")
+                            .visible(true)
+                            .build()
+                            .expect("failed to create settings window");
+                        }
                     }
                     _ => {}
                 })
@@ -97,6 +118,20 @@ pub fn run() {
                 .build(app)
                 .unwrap();
 
+            // 初始化main窗口
+            tauri::WebviewWindowBuilder::new(
+                app,
+                "main", // 窗口唯一标识
+                tauri::WebviewUrl::App("#/main".into()),
+                )
+                .inner_size(600.0, 300.0)
+                .title("PUT FIRST THINGS FIRST")
+                .visible(true)
+                .build()
+                .expect("failed to create main window");
+            
+            
+            // 启动定时弹窗
             window_manager::start_periodic_popup(app.handle().clone(), "main");
 
             notion::init_auth_info(app.handle());
@@ -122,7 +157,6 @@ pub fn run() {
             task_manager::add_task,
             task_manager::update_task,
             task_manager::load_pages,
-
         ])
         .run(tauri::generate_context!())
         .expect("failed to run app");

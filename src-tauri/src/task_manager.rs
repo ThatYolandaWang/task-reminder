@@ -43,10 +43,10 @@ pub struct Page {
 pub struct SaveResult {
     success: bool,
     #[serde(skip_serializing_if = "Option::is_none", default)]
-    pub id: Option<String>,     // 添加任务时，返回任务id
+    pub id: Option<String>, // 添加任务时，返回任务id
 
     #[serde(skip_serializing_if = "Option::is_none", default)]
-    pub tasks: Option<TaskList>,// 查询任务时获取列表
+    pub tasks: Option<TaskList>, // 查询任务时获取列表
 
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub status: Option<String>, // 查询任务时获取状态, "unauthorized" 未登录, "success" 成功, "failed" 失败
@@ -105,7 +105,6 @@ fn save_tasks_impl(tasks: &TaskList, app: &tauri::AppHandle) -> Result<SaveResul
         ..Default::default()
     })
 }
-
 
 // 从notion加载任务
 pub async fn load_tasks_from_notion_impl(_app: &tauri::AppHandle) -> Result<SaveResult, String> {
@@ -339,7 +338,10 @@ async fn add_task_to_notion_impl(
 ) -> Result<SaveResult, String> {
     let auth_info = get_auth_info_from_global();
     if let Some(auth) = auth_info {
-        let url = format!("{}/v1/pages", std::env::var("VITE_NOTION_API_URL").unwrap_or_default());
+        let url = format!(
+            "{}/v1/pages",
+            std::env::var("VITE_NOTION_API_URL").unwrap_or_default()
+        );
 
         let mut headers = HeaderMap::new();
         headers.insert(
@@ -435,8 +437,6 @@ fn get_today_begin_time() -> String {
     return iso8601_str;
 }
 
-
-
 #[tauri::command]
 pub async fn load_pages(app: tauri::AppHandle) -> Result<SaveResult, String> {
     load_pages_from_notion_impl(&app).await
@@ -446,13 +446,20 @@ pub async fn load_pages(app: tauri::AppHandle) -> Result<SaveResult, String> {
 pub async fn load_pages_from_notion_impl(_app: &tauri::AppHandle) -> Result<SaveResult, String> {
     log::info!("load_pages_from_notion_impl");
     let auth_info = get_auth_info_from_global();
-    log::debug!("load_pages_from_notion_impl auth_info: {:?}", auth_info.is_some());
+    log::debug!(
+        "load_pages_from_notion_impl auth_info: {:?}",
+        auth_info.is_some()
+    );
     if let Some(auth) = auth_info {
+        log::debug!(
+            "load_pages_from_notion_impl access_token: {:?}",
+            auth.access_token
+        );
 
-        log::debug!("load_pages_from_notion_impl access_token: {:?}", auth.access_token);
-
-
-        let url = format!("{}/v1/search", std::env::var("VITE_NOTION_API_URL").unwrap_or_default());
+        let url = format!(
+            "{}/v1/search",
+            std::env::var("VITE_NOTION_API_URL").unwrap_or_default()
+        );
 
         log::debug!("VITE_NOTION_API_URL: {:?}", url);
 
@@ -506,24 +513,27 @@ pub async fn load_pages_from_notion_impl(_app: &tauri::AppHandle) -> Result<Save
                         let id = result["id"].as_str().unwrap_or_default().replace("-", "");
                         let object = result["object"].as_str().unwrap_or_default();
 
-                        let mut title = "";
+                        let title;
 
                         if object == "page" {
                             title = result["properties"]["title"]["title"]
-                            .as_array()
-                            .and_then(|arr| arr.get(0))
-                            .and_then(|item| item["plain_text"].as_str())
-                            .unwrap_or_default();
-                        }else{
+                                .as_array()
+                                .and_then(|arr| arr.get(0))
+                                .and_then(|item| item["plain_text"].as_str())
+                                .unwrap_or_default();
+                        } else {
                             title = result["title"]
-                            .as_array()
-                            .and_then(|arr| arr.get(0))
-                            .and_then(|item| item["plain_text"].as_str())
-                            .unwrap_or_default();
+                                .as_array()
+                                .and_then(|arr| arr.get(0))
+                                .and_then(|item| item["plain_text"].as_str())
+                                .unwrap_or_default();
                         }
 
                         let parent_type = result["parent"]["type"].as_str().unwrap_or_default();
-                        let parent_id = result["parent"][parent_type].as_str().unwrap_or_default().replace("-", "");
+                        let parent_id = result["parent"][parent_type]
+                            .as_str()
+                            .unwrap_or_default()
+                            .replace("-", "");
                         let url = result["url"].as_str().unwrap_or_default();
 
                         Page {
@@ -537,7 +547,10 @@ pub async fn load_pages_from_notion_impl(_app: &tauri::AppHandle) -> Result<Save
                     })
                     .collect();
 
-                log::info!("load_pages_from_notion_impl pages number: {:?}", pages.len());
+                log::info!(
+                    "load_pages_from_notion_impl pages number: {:?}",
+                    pages.len()
+                );
                 return Ok(SaveResult {
                     success: true,
                     pages: Some(pages),

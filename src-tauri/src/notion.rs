@@ -104,12 +104,14 @@ pub fn clear_auth_info(app: tauri::AppHandle) -> Result<SaveResult, String> {
         println!("remove_file");
         std::fs::remove_file(&file_path).map_err(|e| e.to_string())?;
     }
-    Ok(SaveResult { success: true , ..Default::default()})
+    Ok(SaveResult {
+        success: true,
+        ..Default::default()
+    })
 }
 
 // 前端保存授权信息
 pub fn save_auth_info_impl(auth: &AuthInfo, app: &tauri::AppHandle) -> Result<SaveResult, String> {
-
     log::info!("save_auth_info_impl");
     log::info!("user: {}", auth.user.name);
     let config_dir = app.path().app_config_dir().unwrap();
@@ -126,7 +128,10 @@ pub fn save_auth_info_impl(auth: &AuthInfo, app: &tauri::AppHandle) -> Result<Sa
         *guard = Some(auth.clone()); // 或 None 以清除
     }
 
-    Ok(SaveResult { success: true , ..Default::default()})
+    Ok(SaveResult {
+        success: true,
+        ..Default::default()
+    })
 }
 
 // 从文件中加载授权信息
@@ -156,21 +161,30 @@ pub fn get_auth_info_from_global() -> Option<AuthInfo> {
 #[tauri::command]
 pub async fn select_page(id: String, app: tauri::AppHandle) -> Result<SaveResult, String> {
     log::info!("select_page");
-    let mut cloned_auth = None;
+    let cloned_auth;
     if let Some(mutex) = GLOBAL_AUTH_INFO.get() {
         let mut guard = mutex.lock().map_err(|e| e.to_string())?;
         if let Some(auth_info) = guard.as_mut() {
             auth_info.duplicated_template_id = id;
             cloned_auth = Some(auth_info.clone());
         } else {
-            return Ok(SaveResult { success: false, error: Some("AuthInfo 为空，无法更新".to_string()) })
+            return Ok(SaveResult {
+                success: false,
+                error: Some("AuthInfo 为空，无法更新".to_string()),
+            });
         }
     } else {
-        return Ok(SaveResult { success: false, error: Some("GLOBAL_AUTH_INFO 未初始化".to_string()) })
+        return Ok(SaveResult {
+            success: false,
+            error: Some("GLOBAL_AUTH_INFO 未初始化".to_string()),
+        });
     }
     // 锁已释放
     if let Some(auth) = cloned_auth {
         save_auth_info_impl(&auth, &app)?;
     }
-    Ok(SaveResult { success: true , ..Default::default()})
+    Ok(SaveResult {
+        success: true,
+        ..Default::default()
+    })
 }
