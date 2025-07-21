@@ -13,6 +13,19 @@ const PACKAGE_DIR = "package";
 const LATEST_JSON = path.join(process.cwd(), "portal", "task-reminder", "public", "latest.json");
 const TAURI_CONFIG = path.join(process.cwd(), "src-tauri", "tauri.conf.json");
 
+const PLATFORMS = {
+  "win": {
+    key: "windows-x86_64",
+    patch: ".msi",
+    command: []
+  },
+  "mac": {
+    key: "darwin-aarch64",
+    patch: ".tar.gz",
+    command: []
+  }
+}
+
 // 工具方法
 function run(cmd, args, env) {
   console.log(`→ Running: ${cmd} ${args.join(' ')}`);
@@ -52,37 +65,54 @@ async function promptVersionBump() {
 async function build() {
   console.log('🔧 Build process started');
 
+
+
+  let version;
+
+  console.log('→ 读取当前 version...', LATEST_JSON);
+  const data = JSON.parse(await fs.readFile(LATEST_JSON, 'utf8'));
+  const oldVersion = data.version;
+  
   // 版本 bump
   if (await promptVersionBump()) {
-    console.log('→ 读取当前 version...');
-    const data = JSON.parse(await fs.readFile(LATEST_JSON, 'utf8'));
-    const oldVer = data.version;
-    const newVer = bumpVersion(oldVer);
+
+    const newVer = bumpVersion(oldVersion);
     if (!newVer) {
-      console.error(`无法解析版本号: ${oldVer}`);
+      console.error(`无法解析版本号: ${oldVersion}`);
       process.exit(1);
     }
-    data.version = newVer;
-    await fs.writeFile(LATEST_JSON, JSON.stringify(data, null, 2));
-    const tauriConfig = JSON.parse(await fs.readFile(TAURI_CONFIG, 'utf8'));
-    tauriConfig.version = newVer;
-    await fs.writeFile(TAURI_CONFIG, JSON.stringify(tauriConfig, null, 2));
-    console.log(`✅ Version updated: ${oldVer} → ${newVer}`);
+    version = newVer;
+    console.log(`→ 新版本号: ${version}`);
+  }else{
+    version = oldVersion;
+    console.log(`→ 使用当前版本号: ${oldVersion}`);
   }
+
+
+  const tauriConfig = JSON.parse(await fs.readFile(TAURI_CONFIG, 'utf8'));
+  if (version != tauriConfig.version) {
+    tauriConfig.version = version;
+    await fs.writeFile(TAURI_CONFIG, JSON.stringify(tauriConfig, null, 2));
+    console.log(`✅ Version updated: ${oldVersion} → ${version}`);
+  }
+
+
 
   // 读取私钥
   let privateKey;
   try {
     privateKey = fs.readFileSync("key/myapp.key", "utf8").replace(/\n/g, "");
   } catch (err) {
-    console.error("❌ 密钥文件不存在，请先运行 generatekey", err);
+    console.error("密钥文件不存在，请先运行 generatekey", err);
     process.exit(1);
   }
 
   // 执行 tauri build
   const isWindows = os.platform().startsWith("win");
-  const buildArgs = ["tauri", "build"];
-  if (!isWindows) buildArgs.push("--bundles", "dmg");
+  const platformKey = isWindows ? "win" : "mac";
+
+  const PLATFORM = PLATFORMS[platformKey];
+  const buildArgs = ["tauri", "build", ...PLATFORM.command];
   run("yarn", buildArgs, {
     TAURI_SIGNING_PRIVATE_KEY: privateKey,
     TAURI_SIGNING_PRIVATE_KEY_PASSWORD: "Mxy123820",
@@ -101,19 +131,27 @@ async function build() {
   console.log('→ 更新 latest.json 中的 signature 和 url');
   const latestJsonContent = await fs.readFile(LATEST_JSON, "utf8");
   const latestJsonData = JSON.parse(latestJsonContent);
-  const sigFiles = globSync(`${BUILD_PATH}/**/*.tar.gz.sig`);
+  const sigFiles = globSync(`${BUILD_PATH}/**/*${PLATFORM.patch}.sig`);
   if (sigFiles.length === 0) {
-    console.error("❌ 找不到 .tar.gz.sig 文件");
+    console.error(`❌ 找不到 ${BUILD_PATH}/**/*${PLATFORM.patch}.sig 文件`);
     process.exit(1);
   }
+
+
   const signature = fs.readFileSync(sigFiles[0], "utf8").replace(/\n/g, "");
-  const platformKey = isWindows ? "windows-x86_64" : "darwin-aarch64";
-  latestJsonData.platforms[platformKey] = latestJsonData.platforms[platformKey] || {};
-  latestJsonData.platforms[platformKey].signature = signature;
-  latestJsonData.platforms[platformKey].url =
-    `https://github.com/ThatYolandaWang/task-reminder/releases/download/${latestJsonData.version}/task-reminder.app.tar.gz`;
+  latestJsonData.version = version;
+  latestJsonData.platforms[PLATFORM.key] = latestJsonData.platforms[PLATFORM.key] || {};
+  latestJsonData.platforms[PLATFORM.key].signature = signature;
+  latestJsonData.platforms[PLATFORM.key].url =
+    PLATFORM.key === "windows-x86_64" ?
+      `https://github.com/ThatYolandaWang/task-reminder/releases/download/${latestJsonData.version}/task-reminder_${latestJsonData.version}_x64_en-US.msi`
+      : `https://github.com/ThatYolandaWang/task-reminder/releases/download/${latestJsonData.version}/task-reminder.app.tar.gz`;
   latestJsonData.pub_date = new Date().toISOString();
+
   await fs.writeFile(LATEST_JSON, JSON.stringify(latestJsonData, null, 2));
+
+
+
   console.log('✅ latest.json 更新完成');
 
   console.log('🎉 Build 完成');
