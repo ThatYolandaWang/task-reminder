@@ -1,4 +1,0 @@
-build:
-	export TAURI_SIGNING_PRIVATE_KEY="Path or content of your private key"; \
-	export TAURI_SIGNING_PRIVATE_KEY_PASSWORD=""; \
-	yarn tauri build
