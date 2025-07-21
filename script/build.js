@@ -11,6 +11,7 @@ import { stdin as input, stdout as output } from 'node:process';
 const BUILD_PATH = "src-tauri/target/release/bundle";
 const PACKAGE_DIR = "package";
 const LATEST_JSON = path.join(process.cwd(), "portal", "task-reminder", "public", "latest.json");
+const TAURI_CONFIG = path.join(process.cwd(), "src-tauri", "tauri.conf.json");
 
 // 工具方法
 function run(cmd, args, env) {
@@ -63,6 +64,9 @@ async function build() {
     }
     data.version = newVer;
     await fs.writeFile(LATEST_JSON, JSON.stringify(data, null, 2));
+    const tauriConfig = JSON.parse(await fs.readFile(TAURI_CONFIG, 'utf8'));
+    tauriConfig.version = newVer;
+    await fs.writeFile(TAURI_CONFIG, JSON.stringify(tauriConfig, null, 2));
     console.log(`✅ Version updated: ${oldVer} → ${newVer}`);
   }
 
@@ -91,7 +95,7 @@ async function build() {
   await copyGlob(`${BUILD_PATH}/**/*.dmg`, PACKAGE_DIR);
   await copyGlob(`${BUILD_PATH}/**/*.msi`, PACKAGE_DIR);
   await copyGlob(`${BUILD_PATH}/**/*.tar.gz`, PACKAGE_DIR);
-  await copyGlob(`${BUILD_PATH}/**/*.tar.gz.sig`, PACKAGE_DIR);
+  await copyGlob(`${BUILD_PATH}/**/*.sig`, PACKAGE_DIR);
 
   // 更新 signature & url
   console.log('→ 更新 latest.json 中的 signature 和 url');

@@ -8,7 +8,9 @@
     "build": "vite build",
     "preview": "vite preview",
     "tauri": "tauri",
-    "package": "node script/build.js build"
+    "package": "node script/build.js build",
+    "cleanpackage": "rm -rf package src-tauri/target dist",
+    "cleanall": "rm -rf package src-tauri/target dist yarn.lock node_modules"
   },
   "dependencies": {
     "@radix-ui/react-label": "^2.1.7",

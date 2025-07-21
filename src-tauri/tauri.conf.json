@@ -35,7 +35,10 @@
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEU0NjRDNDhFRjVCQTYxNjEKUldSaFlicjFqc1JrNUR0NngyZVJ0UW5rVHZTTnhyUkdhNmVCTE01SldWaUcyWUdNSGdSNFdZdlkK",
       "endpoints": [
         "https://task-reminder-tau.vercel.app/latest.json"
-      ]
+      ],
+      "windows":{
+        "installMode": "passive"
+      }
     }
   }
 }
