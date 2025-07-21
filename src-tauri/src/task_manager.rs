@@ -71,11 +71,11 @@ pub async fn update_task(task: Task, app: tauri::AppHandle) -> Result<SaveResult
 }
 
 #[tauri::command]
-pub async fn load_tasks(app: tauri::AppHandle) -> Result<SaveResult, String> {
-    load_tasks_impl(&app).await
+pub async fn load_tasks(is_history: bool, app: tauri::AppHandle) -> Result<SaveResult, String> {
+    load_tasks_impl(is_history, &app).await
 }
 
-pub async fn load_tasks_impl(app: &tauri::AppHandle) -> Result<SaveResult, String> {
+pub async fn load_tasks_impl(is_history: bool, app: &tauri::AppHandle) -> Result<SaveResult, String> {
     // let auth_info = get_auth_info_from_global();
     // if let Some(_auth) = auth_info {
     //     return load_tasks_from_notion_impl(&app).await;
@@ -84,7 +84,7 @@ pub async fn load_tasks_impl(app: &tauri::AppHandle) -> Result<SaveResult, Strin
     // }
     let auth_info = get_auth_info_from_global();
     if let Some(_auth) = auth_info {
-        return load_tasks_from_notion_impl(&app).await;
+        return load_tasks_from_notion_impl(is_history, &app).await;
     } else {
         return Ok(SaveResult {
             success: false,
@@ -107,7 +107,7 @@ fn save_tasks_impl(tasks: &TaskList, app: &tauri::AppHandle) -> Result<SaveResul
 }
 
 // 从notion加载任务
-pub async fn load_tasks_from_notion_impl(_app: &tauri::AppHandle) -> Result<SaveResult, String> {
+pub async fn load_tasks_from_notion_impl(is_history: bool, _app: &tauri::AppHandle) -> Result<SaveResult, String> {
     let auth_info = get_auth_info_from_global();
     if let Some(auth) = auth_info {
         let url = format!(
@@ -126,16 +126,12 @@ pub async fn load_tasks_from_notion_impl(_app: &tauri::AppHandle) -> Result<Save
 
         let today = get_today_begin_time();
 
-        let body = json!(
+        
+
+        let mut body = json!(
             {
                 "filter": {
                     "and": [
-                        {
-                            "property": "time",
-                            "date": {
-                                "on_or_after": today
-                            }
-                        },
                         {
                             "or": [
                                 {
@@ -162,6 +158,24 @@ pub async fn load_tasks_from_notion_impl(_app: &tauri::AppHandle) -> Result<Save
                 ]
             }
         );
+
+        if !is_history {
+            if let Some(arr) = body
+                .get_mut("filter")
+                .and_then(|f| f.get_mut("and"))
+                .and_then(|v| v.as_array_mut()) 
+            {
+                arr.push(json!({
+                    "property": "time",
+                    "date": {
+                        "on_or_after": today
+                    }
+                }));
+            } else {
+                // 可选：初始化数组或处理错误
+                return Err("`filter.and` not found or not an array".into());
+            }
+        }
 
         let res = reqwest::Client::new()
             .post(url)

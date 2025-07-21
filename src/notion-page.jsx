@@ -5,12 +5,29 @@ import { invoke } from '@tauri-apps/api/core';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "./components/ui/select";
 import { toast } from "sonner";
 import { ListChecks } from "lucide-react";
+import { check } from '@tauri-apps/plugin-updater';
 
 export default function NotionPage() {
 
     const { state, authInfo, selectPage } = useNotionContext();
 
     const [pages, setPages] = useState([]);
+
+    useEffect(() => {
+        checkVersion()
+    }, [])
+
+    async function checkVersion() {
+        try {
+
+            const update = await check()
+            if (update) {
+                toast.info(`检查到有新版本: v${update.version}，可以前往 设置 中更新`)
+            }
+        } catch (error) {
+            toast.error(error)
+        }
+    }
 
     useEffect(() => {
         if (state === "success") {

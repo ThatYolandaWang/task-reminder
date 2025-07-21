@@ -21,7 +21,7 @@ pub fn start_periodic_popup(app_handle: AppHandle, window_label: &str) {
                     sleep(Duration::from_secs(1)).await;
                 }
 
-                let tasks = load_tasks_impl(&app_handle).await.unwrap();
+                let tasks = load_tasks_impl(false, &app_handle).await.unwrap();
                 if tasks.tasks.as_ref().unwrap().tasks.len() == 0 {
                     println!("no tasks");
                     sleep(Duration::from_secs(60)).await;

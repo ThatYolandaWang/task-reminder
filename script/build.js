@@ -96,6 +96,7 @@ async function build() {
     console.log(`✅ Version updated: ${oldVersion} → ${version}`);
   }
 
+  await copyGlob(".env", "./src-tauri");
 
 
   // 读取私钥
@@ -162,8 +163,9 @@ function generateKey() {
   run("yarn", ["tauri", "signer", "generate", "-w", "key/myapp.key"]);
 }
 
-function dev() {
+async function dev() {
   console.log('🚀 Starting dev mode');
+  await copyGlob(".env", "./src-tauri");
   run("yarn", ["tauri", "dev"]);
 }
 

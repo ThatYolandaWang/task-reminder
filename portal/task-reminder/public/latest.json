@@ -1,15 +1,15 @@
 {
-  "version": "1.1.3",
+  "version": "1.1.5",
   "notes": "1.1.2",
-  "pub_date": "2025-07-21T13:56:24.358Z",
+  "pub_date": "2025-07-21T15:45:10.464Z",
   "platforms": {
     "windows-x86_64": {
       "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSaFlicjFqc1JrNUpsMUZrNDM4WjNYVVI4TDBSTzNab2xIOFluRk1IZytGWE1OZ29HODFCOWtlbTVtUWtzMTJsYkwrcFNXSnNsN1pDYXJ3ajVpaXZRdnlrQVNpR2tTTUE0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzUzMDMyMTEwCWZpbGU6dGFzay1yZW1pbmRlci5hcHAudGFyLmd6CjZIWVNkd0JWWVpsY1JYODZnSEpDZFVlaUFwMGJ2bWpPUGZVNGs4UWp1SGkrUHBUVXp5eGM4M2FLLzl3Ky9ETlZnK3pIQ09TUm5LcTFVOE5WQTlBZEN3PT0K",
       "url": "https://github.com/ThatYolandaWang/task-reminder/releases/download/1.1.2/task-reminder.app.tar.gz"
     },
     "darwin-aarch64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSaFlicjFqc1JrNVAxK3I3NEZWeWMyQTluM29kU2treTVwTFpEdk5vVmVkMG9LaVNyck5YUVpnYjF0T2l0bWtPbmVocEYvd3ZyRmZTWFVXUUNHandFZ0RxREFJZmU4bVE4PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzUzMTA2MTg0CWZpbGU6dGFzay1yZW1pbmRlci5hcHAudGFyLmd6ClZvQ0cxTXQ4MUQrdU5HNU9qVE5rZ1N1T1oxTHNZYVhYV1JXV00rMjViVE9hOVN0TGxqaW4zUmtSdlU3OWI5V0VjbU8vN0VUU01qQWVVUCtwTlNWR0NRPT0K",
-      "url": "https://github.com/ThatYolandaWang/task-reminder/releases/download/1.1.3/task-reminder.app.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSaFlicjFqc1JrNUxqQ0UveURWTkY4VHNvSWdHRmgyUjdYbENkQUVyMFZGV1BkaWJjdzRSWXlWSHZwK1NTVGd2UzVlMEUxeEc1WWx0Y2hTeXNNdHp0bjFmZWl6ZEhHWGdrPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzUzMTEyNzEwCWZpbGU6dGFzay1yZW1pbmRlci5hcHAudGFyLmd6CjdtdzRnZWdNVXZrYlJCY2l1Z0ZMVlNiNkg2WnNpRVVDTG1lOThTZTRCRDRHUTRDMDRVbm44RTVKUmU1MndjTXZDYU4rODdmQ1d3V0VvbUE2WDkvdURBPT0K",
+      "url": "https://github.com/ThatYolandaWang/task-reminder/releases/download/1.1.5/task-reminder.app.tar.gz"
     }
   }
 }

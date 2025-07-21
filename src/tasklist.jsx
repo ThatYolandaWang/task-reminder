@@ -7,9 +7,18 @@ import { v4 as uuidv4 } from 'uuid';
 import { debug, info } from '@tauri-apps/plugin-log';
 import { Task } from './task';
 import { Button } from './components/ui/button';
-import { AlarmClock, Loader, Plus } from 'lucide-react';
+import { AlarmClock, Loader, Plus, History } from 'lucide-react';
 import NotionLoginButton from './notion';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './components/ui/select';
+import { Switch } from './components/ui/switch';
+import { Label } from './components/ui/label';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from "@/components/ui/tooltip"
+
+
 import NotionPage from './notion-page';
 
 const remindHoursOptions = [
@@ -38,6 +47,8 @@ export default function TaskList() {
     const [items, setItems] = useState([]);
     const [remindLaterHours, setRemindLaterHours] = useState(1);
     const [isLoading, setIsLoading] = useState(false);
+
+    const [isHistory, setIsHistory] = useState(false);
     // 加载本地任务
     useEffect(() => {
 
@@ -48,14 +59,14 @@ export default function TaskList() {
             setIsLoading(false)
             toast.error("token 已过期，请重新登陆")
         }
-    }, [state, authInfo])
+    }, [state, authInfo, isHistory])
 
     const loadTasks = async () => {
         try {
 
             setIsLoading(true)
             info("loadTasks")
-            const res = await invoke("load_tasks")
+            const res = await invoke("load_tasks", { isHistory: isHistory })
 
             debug("loadTasks res:" + JSON.stringify(res))
 
@@ -161,44 +172,7 @@ export default function TaskList() {
                         ))}
                     </Reorder.Group>
 
-                    <div className="w-full flex flex-row sticky bottom-0 bg-white justify-between">
-                        <div className="flex flex-row gap-1">
 
-                            {state == "success" && (
-                                <>
-                                    <NotionPage />
-
-                                    {items.length > 0 &&
-                                        <>
-                                            <Button variant="ghost" onClick={remindLater}>
-                                                <AlarmClock className="flex-shrink-0" size={16} /> <span className="text-ellipsis whitespace-nowrap">稍后提醒</span>
-                                            </Button>
-
-
-                                            {/*  options={remindHoursOptions} value={remindLaterHours} onChange={e => setRemindLaterHours(e.target.value)} */}
-                                            <Select value={remindLaterHours} onValueChange={setRemindLaterHours}>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="稍后提醒" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {remindHoursOptions.map(option => (
-                                                        <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                        </>
-                                    }
-                                </>
-                            )}
-                        </div>
-
-                        <div className="flex flex-row">
-                            <Button variant="ghost" onClick={handleAddTask}>
-                                <Plus size={16} /> <span>添加任务</span>
-                            </Button>
-                            <NotionLoginButton />
-                        </div>
-                    </div>
                 </>
             ) : (
                 <motion.div
@@ -208,25 +182,58 @@ export default function TaskList() {
                     transition={{ duration: 0.5 }}
                     className="flex flex-col items-center justify-center flex-1">
                     <div className="text-sm text-gray-500 text-center animate-pulse">请你记下今天最重要的三件事，全力以赴，完成它</div>
-
-                    <div className="flex flex-row items-center h-10">
-
-                        {isLoading ? (
-                            <div className="text-sm text-gray-500 text-center flex flex-row items-center gap-2"><Loader className="animate-spin" size={16} /> 加载中...</div>
-                        ) : (
-                            <>
-                                {state == "success" && (
-                                    <Button variant="ghost" onClick={handleAddTask}>
-                                        <Plus size={16} /> <span>添加任务</span>
-                                    </Button>
-                                )}
-                                < NotionLoginButton />
-                            </>
-                        )}
-
-
-                    </div>
+                    {isLoading ? (
+                        <div className="text-sm text-gray-500 text-center animate-pulse flex flex-row items-center gap-2"><Loader className="animate-spin" size={16} /> 加载中...</div>
+                    ) : state === "failed" ? (
+                        <div className="text-sm text-gray-500 text-center animate-pulse">加载失败，请重新登陆</div>
+                    ) : state === "success" && !authInfo?.duplicated_template_id ? (
+                        <div className="text-sm text-gray-500 text-center animate-pulse">请先选择一个任务的页面</div>
+                    ):(
+                        <div className='h-5'>
+                        </div>
+                    )}
                 </motion.div>
+            )}
+
+
+            {state === "success" && (
+                <div className="w-full flex flex-row sticky bottom-0 bg-white justify-between">
+                    <div className="flex flex-row gap-1">
+                        <NotionPage />
+                        {items.length > 0 &&
+                            <>
+                                <Button variant="ghost" onClick={remindLater}>
+                                    <AlarmClock className="flex-shrink-0" size={16} /> <span className="text-ellipsis whitespace-nowrap">稍后提醒</span>
+                                </Button>
+
+
+                                {/*  options={remindHoursOptions} value={remindLaterHours} onChange={e => setRemindLaterHours(e.target.value)} */}
+                                <Select value={remindLaterHours} onValueChange={setRemindLaterHours}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="稍后提醒" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {remindHoursOptions.map(option => (
+                                            <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </>
+                        }
+                    </div>
+
+                    <div className="flex flex-row">
+                        <Button variant="ghost" onClick={handleAddTask}>
+                            <Plus size={16} /> <span>添加任务</span>
+                        </Button>
+                        <NotionLoginButton />
+
+                        <div className="flex flex-row items-center justify-between gap-2">
+                            <Label htmlFor="history" className="text-ellipsis whitespace-nowrap">{isHistory ? "历史记录" : "今日任务"}</Label>
+                            <Switch id="history" checked={isHistory} onCheckedChange={setIsHistory} />
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     )
