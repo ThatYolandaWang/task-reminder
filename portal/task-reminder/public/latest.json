@@ -4,12 +4,12 @@
     "pub_date": "2025-07-20",
     "platforms": {
       "windows-x86_64": {
-        "signature": "",
-        "url": ""
+        "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSaFlicjFqc1JrNUpsMUZrNDM4WjNYVVI4TDBSTzNab2xIOFluRk1IZytGWE1OZ29HODFCOWtlbTVtUWtzMTJsYkwrcFNXSnNsN1pDYXJ3ajVpaXZRdnlrQVNpR2tTTUE0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzUzMDMyMTEwCWZpbGU6dGFzay1yZW1pbmRlci5hcHAudGFyLmd6CjZIWVNkd0JWWVpsY1JYODZnSEpDZFVlaUFwMGJ2bWpPUGZVNGs4UWp1SGkrUHBUVXp5eGM4M2FLLzl3Ky9ETlZnK3pIQ09TUm5LcTFVOE5WQTlBZEN3PT0K",
+        "url": "https://github.com/ThatYolandaWang/task-reminder/releases/download/1.1.2/task-reminder.app.tar.gz"
       },
       "darwin-x86_64": {
-        "signature": "",
-        "url": ""
+        "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSaFlicjFqc1JrNUpsMUZrNDM4WjNYVVI4TDBSTzNab2xIOFluRk1IZytGWE1OZ29HODFCOWtlbTVtUWtzMTJsYkwrcFNXSnNsN1pDYXJ3ajVpaXZRdnlrQVNpR2tTTUE0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzUzMDMyMTEwCWZpbGU6dGFzay1yZW1pbmRlci5hcHAudGFyLmd6CjZIWVNkd0JWWVpsY1JYODZnSEpDZFVlaUFwMGJ2bWpPUGZVNGs4UWp1SGkrUHBUVXp5eGM4M2FLLzl3Ky9ETlZnK3pIQ09TUm5LcTFVOE5WQTlBZEN3PT0K",
+        "url": "https://github.com/ThatYolandaWang/task-reminder/releases/download/1.1.2/task-reminder.app.tar.gz"
       },
       "darwin-aarch64": {
         "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSaFlicjFqc1JrNUpsMUZrNDM4WjNYVVI4TDBSTzNab2xIOFluRk1IZytGWE1OZ29HODFCOWtlbTVtUWtzMTJsYkwrcFNXSnNsN1pDYXJ3ajVpaXZRdnlrQVNpR2tTTUE0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzUzMDMyMTEwCWZpbGU6dGFzay1yZW1pbmRlci5hcHAudGFyLmd6CjZIWVNkd0JWWVpsY1JYODZnSEpDZFVlaUFwMGJ2bWpPUGZVNGs4UWp1SGkrUHBUVXp5eGM4M2FLLzl3Ky9ETlZnK3pIQ09TUm5LcTFVOE5WQTlBZEN3PT0K",
