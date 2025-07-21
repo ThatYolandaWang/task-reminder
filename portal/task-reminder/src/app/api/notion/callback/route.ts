@@ -55,6 +55,8 @@ export async function GET(req: NextRequest) {
 
     console.log("tokenData:", tokenData)
 
+
+    // 如果有返回duplicated_template_id，则直接跳转到该页面
     let url = "https://www.notion.so"
     if (tokenData && tokenData.workspace_id) {
         url += "/" + tokenData.workspace_id.replace(/-/g, "")
@@ -63,16 +65,19 @@ export async function GET(req: NextRequest) {
         url += "/" + tokenData.duplicated_template_id.replace(/-/g, "")
     }
 
+    // 如果没有返回duplicated_template_id，则跳转到帮助页面
     if (tokenData && !tokenData.duplicated_template_id) {
-      url = "/help?status=userdefined"
+      url = req.nextUrl.origin + "/help?status=userdefined"
     }
 
+    console.log("url:", url)
 
     //return NextResponse.json(tokenData);
     return NextResponse.redirect(url);
   } else {
-    const url = `/help?status=error&error=${error}&error_description=${tokenData.error_description}`
 
+    console.log("url:", req.nextUrl.origin)
+    const url = req.nextUrl.origin + `/help?status=error&error=${error}&error_description=${tokenData.error_description}`
     return NextResponse.redirect(url);
   }
 }
