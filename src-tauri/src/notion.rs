@@ -13,7 +13,7 @@ pub fn init_auth_info(app: &tauri::AppHandle) {
     GLOBAL_AUTH_INFO.set(Mutex::new(auth_info)).ok();
 }
 
-#[derive(Serialize, Default)]
+#[derive(Serialize,Deserialize, Default)]
 pub struct SaveResult {
     success: bool,
 
@@ -28,11 +28,12 @@ pub struct Person {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct User {
-    pub avatar_url: String,
     pub id: String,
-    pub name: String,
     pub object: String,
-    pub person: Person,
+    pub name: Option<String>,
+    pub r#type: Option<String>,
+    pub avatar_url: Option<String>,
+    pub person: Option<Person>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -113,7 +114,7 @@ pub fn clear_auth_info(app: tauri::AppHandle) -> Result<SaveResult, String> {
 // 前端保存授权信息
 pub fn save_auth_info_impl(auth: &AuthInfo, app: &tauri::AppHandle) -> Result<SaveResult, String> {
     log::info!("save_auth_info_impl");
-    log::info!("user: {}", auth.user.name);
+    log::info!("user: {:?}", auth.user.name);
     let config_dir = app.path().app_config_dir().unwrap();
 
     let file_path = config_dir.join("auth_info.json");
@@ -146,7 +147,7 @@ pub fn load_auth_info_impl(app: &tauri::AppHandle) -> Result<Option<AuthInfo>, S
         std::fs::read_to_string(&file_path).map_err(|e| format!("读取文件失败: {}", e))?;
     let auth: AuthInfo =
         serde_json::from_str(&content).map_err(|e| format!("解析 JSON 失败: {}", e))?;
-    log::info!("load_auth_info_impl: {}", auth.user.name);
+    log::info!("load_auth_info_impl: {:?}", auth.user.name);
     Ok(Some(auth))
 }
 

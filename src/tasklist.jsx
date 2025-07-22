@@ -182,7 +182,9 @@ export default function TaskList() {
                         <div className="text-sm text-gray-500 text-center animate-pulse">加载失败，请重新登陆</div>
                     ) : state === "success" && !authInfo?.duplicated_template_id ? (
                         <div className="text-sm text-gray-500 text-center animate-pulse">请先选择一个任务的页面</div>
-                    ):(
+                    ): state === "not_start" ? (
+                        <NotionLoginButton />
+                    ) : (
                         <div className='h-5'>
                         </div>
                     )}
