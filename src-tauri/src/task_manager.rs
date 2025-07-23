@@ -55,6 +55,13 @@ pub struct SaveResult {
     pub pages: Option<Vec<Page>>, // 查询页面时获取列表
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct TaskParams{
+    pub start: Option<String>, // 开始日期
+    pub end: Option<String>,   // 结束日期
+    pub status: Option<String>,     // 状态 0:所有, 1:未开始, 2:完成
+}
+
 #[tauri::command]
 pub fn save_tasks(tasks: TaskList, app: tauri::AppHandle) -> Result<SaveResult, String> {
     save_tasks_impl(&tasks, &app)
@@ -71,11 +78,11 @@ pub async fn update_task(task: Task, app: tauri::AppHandle) -> Result<SaveResult
 }
 
 #[tauri::command]
-pub async fn load_tasks(is_history: bool, app: tauri::AppHandle) -> Result<SaveResult, String> {
-    load_tasks_impl(is_history, &app).await
+pub async fn load_tasks(params: Option<TaskParams>, app: tauri::AppHandle) -> Result<SaveResult, String> {
+    load_tasks_impl(&params, &app).await
 }
 
-pub async fn load_tasks_impl(is_history: bool, app: &tauri::AppHandle) -> Result<SaveResult, String> {
+pub async fn load_tasks_impl(params: &Option<TaskParams>, app: &tauri::AppHandle) -> Result<SaveResult, String> {
     // let auth_info = get_auth_info_from_global();
     // if let Some(_auth) = auth_info {
     //     return load_tasks_from_notion_impl(&app).await;
@@ -84,7 +91,7 @@ pub async fn load_tasks_impl(is_history: bool, app: &tauri::AppHandle) -> Result
     // }
     let auth_info = get_auth_info_from_global();
     if let Some(_auth) = auth_info {
-        return load_tasks_from_notion_impl(is_history, &app).await;
+        return load_tasks_from_notion_impl(params, &app).await;
     } else {
         return Ok(SaveResult {
             success: false,
@@ -107,7 +114,7 @@ fn save_tasks_impl(tasks: &TaskList, app: &tauri::AppHandle) -> Result<SaveResul
 }
 
 // 从notion加载任务
-pub async fn load_tasks_from_notion_impl(is_history: bool, _app: &tauri::AppHandle) -> Result<SaveResult, String> {
+pub async fn load_tasks_from_notion_impl(params: &Option<TaskParams>, _app: &tauri::AppHandle) -> Result<SaveResult, String> {
     let auth_info = get_auth_info_from_global();
     if let Some(auth) = auth_info {
         let url = format!(
@@ -124,63 +131,13 @@ pub async fn load_tasks_from_notion_impl(is_history: bool, _app: &tauri::AppHand
         headers.insert("Notion-Version", HeaderValue::from_static("2022-06-28"));
         headers.insert("Content-Type", HeaderValue::from_static("application/json"));
 
-        let today = get_today_begin_time();
 
+        let search_condition = get_search_condition(params);
         
-
-        let mut body = json!(
-            {
-                "filter": {
-                    "and": [
-                        {
-                            "or": [
-                                {
-                                    "property": "status",
-                                    "status": {
-                                        "equals": "未开始"
-                                    }
-                                },
-                                {
-                                    "property": "status",
-                                    "status": {
-                                        "equals": "Not started"
-                                    }
-                                }
-                            ]
-                        }
-                    ]
-                },
-                "sorts": [
-                    {
-                        "property": "percent",
-                        "direction": "descending"
-                    }
-                ]
-            }
-        );
-
-        if !is_history {
-            if let Some(arr) = body
-                .get_mut("filter")
-                .and_then(|f| f.get_mut("and"))
-                .and_then(|v| v.as_array_mut()) 
-            {
-                arr.push(json!({
-                    "property": "time",
-                    "date": {
-                        "on_or_after": today
-                    }
-                }));
-            } else {
-                // 可选：初始化数组或处理错误
-                return Err("`filter.and` not found or not an array".into());
-            }
-        }
-
         let res = reqwest::Client::new()
             .post(url)
             .headers(headers)
-            .body(serde_json::to_string(&body).unwrap())
+            .body(serde_json::to_string(&search_condition).unwrap())
             .send()
             .await;
 
@@ -451,6 +408,24 @@ fn get_today_begin_time() -> String {
     return iso8601_str;
 }
 
+// 获取今天0点的时间
+fn get_today_end_time() -> String {
+    // 1. 获取今天本地日期
+    let today = Local::now().date_naive();
+
+    // 2. 构建 00:00:00 的 NaiveDateTime
+    let midnight_naive = today.and_time(NaiveTime::from_hms_opt(23, 59, 59).unwrap());
+
+    // 3. 转换为本地时区的 DateTime<Local>
+    let midnight_local = Local.from_local_datetime(&midnight_naive).unwrap();
+
+    // 4. 输出 ISO8601 格式字符串
+    let iso8601_str = midnight_local.to_rfc3339();
+
+    return iso8601_str;
+}
+
+
 #[tauri::command]
 pub async fn load_pages(app: tauri::AppHandle) -> Result<SaveResult, String> {
     load_pages_from_notion_impl(&app).await
@@ -585,4 +560,168 @@ pub async fn load_pages_from_notion_impl(_app: &tauri::AppHandle) -> Result<Save
         status: Some("unauthorized".to_string()),
         ..Default::default()
     });
+}
+
+
+fn get_search_condition(params: &Option<TaskParams>) -> serde_json::Value {
+    let start;
+    let end;
+    let status;
+
+    
+    if params.is_none() {
+        start = get_today_begin_time();
+        end = get_today_end_time();
+        status = "1".to_string();
+    }else{
+        start = params.as_ref().unwrap().start.clone().unwrap_or_default();
+        end = params.as_ref().unwrap().end.clone().unwrap_or_default();
+        status = params.as_ref().unwrap().status.clone().unwrap_or_default();
+    }
+
+    log::info!("get_search_condition params: {:?}, {:?}, {:?}", start, end, status);
+
+    
+
+    /*
+    let mut body = json!(
+        {
+            "filter": {
+                "and": [
+                    {
+                        "or": [
+                            {
+                                "property": "status",
+                                "status": {
+                                    "equals": "未开始"
+                                }
+                            },
+                            {
+                                "property": "status",
+                                "status": {
+                                    "equals": "Not started"
+                                }
+                            }
+                        ]
+                    }
+                ]
+            },
+            "sorts": [
+                {
+                    "property": "percent",
+                    "direction": "descending"
+                }
+            ]
+        }
+    );
+
+    if !is_history {
+        if let Some(arr) = body
+            .get_mut("filter")
+            .and_then(|f| f.get_mut("and"))
+            .and_then(|v| v.as_array_mut()) 
+        {
+            arr.push(json!({
+                "property": "time",
+                "date": {
+                    "on_or_after": today
+                }
+            }));
+        } else {
+            // 可选：初始化数组或处理错误
+            return Err("`filter.and` not found or not an array".into());
+        }
+    }
+        */
+
+    let mut body = json!({
+        "filter": {
+            "and": [
+            ]
+        },
+        "sorts": [
+            {
+                "property": "percent",
+                "direction": "descending"
+            },
+            {
+                "property": "time",
+                "direction": "ascending"
+            }
+        ]
+    });
+
+    if params.is_some() {
+        let params = params.as_ref().unwrap();
+
+        if let Some(arr) = body
+        .get_mut("filter")
+        .and_then(|f| f.get_mut("and"))
+        .and_then(|v| v.as_array_mut()) 
+        {
+
+            arr.push(json!(
+                {
+                    "property": "time",
+                    "date":{
+                        "on_or_after": start,
+                    }
+                }
+            ));  
+
+            arr.push(json!(
+                {
+                    "property": "time",
+                    "date":{
+                        "on_or_before": end,
+                    }
+                }
+            ));
+
+
+            if status == "1" {
+                arr.push(json!(
+                    {
+                        "or": [
+                            {
+                                "property": "status",
+                                "status": {
+                                    "equals": "未开始"
+                                }
+                            },
+                            {
+                                "property": "status",
+                                "status": {
+                                    "equals": "Not started"
+                                }
+                            }
+                        ]
+                    }
+                ));
+            }else if status == "2" {
+                arr.push(json!(
+                    {
+                        "or": [
+                            {
+                                "property": "status",
+                                "status": {
+                                    "equals": "完成"
+                                }
+                            },
+                            {
+                                "property": "status",
+                                "status": {
+                                    "equals": "Done"
+                                }
+                            }
+                        ]
+                    }
+                ));
+            }
+        
+        }
+    }
+
+    return body
+
 }

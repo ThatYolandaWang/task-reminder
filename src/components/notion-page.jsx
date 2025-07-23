@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { useNotionContext } from "./context/NotionContext";
+import { useNotionContext } from "@/context/NotionContext";
 import { info, error, } from '@tauri-apps/plugin-log';
 import { invoke } from '@tauri-apps/api/core';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "./components/ui/select";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { toast } from "sonner";
 import { ListChecks } from "lucide-react";
 import { check } from '@tauri-apps/plugin-updater';

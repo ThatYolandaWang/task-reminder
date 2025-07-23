@@ -5,10 +5,12 @@ import { Switch } from "@/components/ui/switch"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import NotionLoginButton from "./notion"
-import NotionPage from "./notion-page"
+import NotionLoginButton from "@/components/notion"
+import NotionPage from "@/components/notion-page"
+
+
 import { invoke } from '@tauri-apps/api/core';
-import { useNotionContext } from "./context/NotionContext";
+import { useNotionContext } from "@/context/NotionContext";
 import { toast } from "sonner";
 
 import { getVersion } from '@tauri-apps/api/app';

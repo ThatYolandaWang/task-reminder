@@ -1,4 +1,4 @@
-import { useNotionContext } from './context/NotionContext';
+import { useNotionContext } from '@/context/NotionContext';
 import {Button} from '@/components/ui/button';
 import { open as openShell } from "@tauri-apps/plugin-shell";
 import { v4 as uuidv4 } from 'uuid';

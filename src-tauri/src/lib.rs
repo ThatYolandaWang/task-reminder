@@ -124,7 +124,7 @@ pub fn run() {
                 "main", // 窗口唯一标识
                 tauri::WebviewUrl::App("#/main".into()),
                 )
-                .inner_size(600.0, 300.0)
+                .inner_size(600.0, 400.0)
                 .title("PUT FIRST THINGS FIRST")
                 .visible(true)
                 .build()
