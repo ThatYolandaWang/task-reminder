@@ -22,6 +22,7 @@ pub struct Task {
     pub percent: u32,
     pub status: String,
     pub time: Time,
+    pub tags: Option<Vec<String>>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -42,6 +43,10 @@ pub struct Page {
 #[derive(Serialize, Default)]
 pub struct SaveResult {
     success: bool,
+
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub error: Option<String>, // 错误信息
+
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub id: Option<String>, // 添加任务时，返回任务id
 
@@ -53,6 +58,9 @@ pub struct SaveResult {
 
     #[serde(skip_serializing_if = "Option::is_none", default)]
     pub pages: Option<Vec<Page>>, // 查询页面时获取列表
+
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub tags: Option<Vec<String>>, // 查询标签时获取列表
 }
 
 #[derive(Serialize, Deserialize)]
@@ -188,12 +196,18 @@ pub async fn load_tasks_from_notion_impl(params: &Option<TaskParams>, _app: &tau
                                 .map(|s| s.to_string()),
                         };
 
+                        let tags = match result.get("properties").and_then(|v| v.get("tags")) {
+                            Some(v) => v.get("multi_select").and_then(|v| v.as_array()).map(|v| v.iter().map(|v| v["name"].as_str().unwrap_or_default().to_string()).collect::<Vec<_>>()),
+                            None => None,
+                        };
+                        
                         Task {
                             id: id.to_string(),
                             text: text.to_string(),
                             percent: percent as u32,
                             status: status.to_string(),
                             time: time,
+                            tags: tags,
                         }
                     })
                     .collect();
@@ -223,6 +237,7 @@ async fn update_task_in_notion_impl(
     task: &Task,
     _app: &tauri::AppHandle,
 ) -> Result<SaveResult, String> {
+    log::info!("update_task_in_notion_impl");
     let auth_info = get_auth_info_from_global();
     if let Some(auth) = auth_info {
         // 使用 auth
@@ -240,7 +255,7 @@ async fn update_task_in_notion_impl(
         headers.insert("Notion-Version", HeaderValue::from_static("2022-06-28"));
         headers.insert("Content-Type", HeaderValue::from_static("application/json"));
 
-        let body = json!({
+        let mut body = json!({
             "properties": {
                 "task": {
                     "type": "title",
@@ -273,6 +288,19 @@ async fn update_task_in_notion_impl(
                 }
             }
         });
+
+        
+        if task.tags.is_some() {
+            log::info!("update_task_in_notion_impl task.tags: {:?}", task.tags);
+            body["properties"]["tags"] = json!({
+                "multi_select":  task.tags.as_ref().unwrap().iter().map(|v| json!({
+                        "name": v
+                    })).collect::<Vec<_>>()
+                
+            });
+        }
+
+        log::info!("update_task_in_notion_impl body: {:?}", body);
 
         let res = reqwest::Client::new()
             .patch(url)
@@ -322,7 +350,7 @@ async fn add_task_to_notion_impl(
         headers.insert("Notion-Version", HeaderValue::from_static("2022-06-28"));
         headers.insert("Content-Type", HeaderValue::from_static("application/json"));
 
-        let body = json!({
+        let mut body = json!({
             "parent": {
                 "type": "database_id",
                 "database_id": auth.duplicated_template_id
@@ -356,9 +384,19 @@ async fn add_task_to_notion_impl(
                         "end": task.time.end,
                         "time_zone": task.time.time_zone
                     }
-                }
+                },
             }
         });
+
+        if task.tags.is_some() {
+            body["properties"]["tags"] = json!({
+                "multi_select":  task.tags.as_ref().unwrap().iter().map(|v| json!({
+                        "name": v
+                    })).collect::<Vec<_>>()
+                
+            });
+        }
+
 
         log::debug!("add_task_to_notion_impl body: {:?}", body);
 
@@ -583,56 +621,6 @@ fn get_search_condition(params: &Option<TaskParams>) -> serde_json::Value {
 
     
 
-    /*
-    let mut body = json!(
-        {
-            "filter": {
-                "and": [
-                    {
-                        "or": [
-                            {
-                                "property": "status",
-                                "status": {
-                                    "equals": "未开始"
-                                }
-                            },
-                            {
-                                "property": "status",
-                                "status": {
-                                    "equals": "Not started"
-                                }
-                            }
-                        ]
-                    }
-                ]
-            },
-            "sorts": [
-                {
-                    "property": "percent",
-                    "direction": "descending"
-                }
-            ]
-        }
-    );
-
-    if !is_history {
-        if let Some(arr) = body
-            .get_mut("filter")
-            .and_then(|f| f.get_mut("and"))
-            .and_then(|v| v.as_array_mut()) 
-        {
-            arr.push(json!({
-                "property": "time",
-                "date": {
-                    "on_or_after": today
-                }
-            }));
-        } else {
-            // 可选：初始化数组或处理错误
-            return Err("`filter.and` not found or not an array".into());
-        }
-    }
-        */
 
     let mut body = json!({
         "filter": {
@@ -652,8 +640,6 @@ fn get_search_condition(params: &Option<TaskParams>) -> serde_json::Value {
     });
 
     if params.is_some() {
-        let params = params.as_ref().unwrap();
-
         if let Some(arr) = body
         .get_mut("filter")
         .and_then(|f| f.get_mut("and"))
@@ -724,4 +710,229 @@ fn get_search_condition(params: &Option<TaskParams>) -> serde_json::Value {
 
     return body
 
+}
+
+
+#[tauri::command]
+pub async fn load_tags() -> Result<SaveResult, String> {
+    log::info!("load_tags");
+    load_tags_impl().await
+}
+
+#[tauri::command]
+pub async fn update_tags(tags: Vec<String>) -> Result<SaveResult, String> {
+    log::info!("update_tags");
+    update_tags_impl(&tags ).await
+}
+async fn load_tags_impl() -> Result<SaveResult, String> {
+    log::info!("load_tags_impl");
+    let auth_info = get_auth_info_from_global();
+
+    if let Some(auth) = auth_info {
+        let url = format!(
+            "{}/v1/databases/{}",
+            std::env::var("VITE_NOTION_API_URL").unwrap_or_default(),
+            auth.duplicated_template_id
+        );
+
+        log::debug!("VITE_NOTION_API_URL: {:?}", url);
+
+        let mut headers = HeaderMap::new();
+
+        headers.insert(
+            AUTHORIZATION,
+            HeaderValue::from_str(&format!("Bearer {}", auth.access_token)).unwrap(),
+        );
+        headers.insert("Notion-Version", HeaderValue::from_static("2022-06-28"));
+        headers.insert("Content-Type", HeaderValue::from_static("application/json"));
+
+
+
+        let res = reqwest::Client::new()
+            .get(url)
+            .headers(headers)
+            .send()
+            .await;
+
+        match res {
+            Ok(res) => {
+                let text = res.text().await.unwrap();
+                let json: serde_json::Value = serde_json::from_str(&text).unwrap();
+                let properties = match json.get("properties").and_then(|v| v.as_object()) {
+                    Some(obj) => obj,
+                    None => {
+                        log::error!("解析Notion数据库properties字段失败: {:?}", json);
+                        return Ok(SaveResult {
+                            success: false,
+                            tags: Some(vec![]),
+                            ..Default::default()
+                        });
+                    }
+                };
+                
+                let tags_obj = match properties.get("tags").and_then(|v| v.as_object()) {
+                    Some(arr) => arr,
+                    None => {
+                        log::info!("未创建标签: {:?}", json);
+                        return Ok(SaveResult {
+                            success: true,
+                            tags: Some(vec![]),
+                            ..Default::default()
+                        });
+                    }
+                };
+
+                let tags_arr = match tags_obj.get("multi_select").and_then(|v| v.as_object()).and_then(|v| v.get("options").and_then(|v| v.as_array())) {
+                    Some(arr) => arr,
+                    None => {
+                        log::info!("未创建标签: {:?}", json);
+                        return Ok(SaveResult {
+                            success: true,
+                            tags: Some(vec![]),
+                            ..Default::default()
+                        });
+                    }
+                };
+
+                let tags: Vec<String> = tags_arr
+                    .iter()
+                    .map(|v| v["name"].as_str().unwrap_or_default().to_string())
+                    .collect();
+                
+                log::info!("load_tags_impl tags: {:?}", tags);
+                return Ok(SaveResult {
+                    success: true,
+                    tags: Some(tags),
+                    ..Default::default()
+                });
+            }
+            Err(e) => {
+                log::error!("load_pages_from_notion_impl error: {:?}", e);
+            }
+        }
+
+        //let body = res.json::<TaskList>().await?;
+    }
+
+    log::error!("load_pages_from_notion_impl get_auth_info_from_global failed");
+
+    return Ok(SaveResult {
+        success: false,
+        tags: Some(vec![]),
+        ..Default::default()
+    });
+}
+
+async fn update_tags_impl(tags: &Vec<String>) -> Result<SaveResult, String>  {
+    log::info!("update_tags_impl");
+    let auth_info = get_auth_info_from_global();
+
+    if let Some(auth) = auth_info {
+        let url = format!(
+            "{}/v1/databases/{}",
+            std::env::var("VITE_NOTION_API_URL").unwrap_or_default(),
+            auth.duplicated_template_id
+        );
+
+        log::debug!("VITE_NOTION_API_URL: {:?}", url);
+
+        let mut headers = HeaderMap::new();
+
+        headers.insert(
+            AUTHORIZATION,
+            HeaderValue::from_str(&format!("Bearer {}", auth.access_token)).unwrap(),
+        );
+        headers.insert("Notion-Version", HeaderValue::from_static("2022-06-28"));
+        headers.insert("Content-Type", HeaderValue::from_static("application/json"));
+
+        let body = json!({
+            "properties": {
+                "tags": {
+                    "multi_select": {
+                        "options": tags.iter().map(|v| json!({
+                            "name": v
+                        })).collect::<Vec<_>>()
+                    }
+                }
+            }
+        });
+
+        log::info!("update_tags_impl body: {:?}", body);
+
+
+        let res = reqwest::Client::new()
+            .patch(url)
+            .body(serde_json::to_string(&body).unwrap())
+            .headers(headers)
+            .send()
+            .await;
+
+        match res {
+            Ok(res) => {
+                let text = res.text().await.unwrap();
+                let json: serde_json::Value = serde_json::from_str(&text).unwrap();
+                let properties = match json.get("properties").and_then(|v| v.as_object()) {
+                    Some(obj) => obj,
+                    None => {
+                        log::error!("解析Notion数据库properties字段失败: {:?}", json);
+                        let error = json.get("message").and_then(|v| v.as_str()).map(|v| v.to_string());
+                        return Ok(SaveResult {
+                            success: false,
+                            error: error,
+                            ..Default::default()
+                        });
+                    }
+                };
+                
+                let tags_obj = match properties.get("tags").and_then(|v| v.as_object()) {
+                    Some(arr) => arr,
+                    None => {
+                        log::info!("未创建标签: {:?}", json);
+                        return Ok(SaveResult {
+                            success: true,
+                            tags: Some(vec![]),
+                            ..Default::default()
+                        });
+                    }
+                };
+
+                let tags_arr = match tags_obj.get("multi_select").and_then(|v| v.as_object()).and_then(|v| v.get("options").and_then(|v| v.as_array())) {
+                    Some(arr) => arr,
+                    None => {
+                        log::info!("未创建标签: {:?}", json);
+                        return Ok(SaveResult {
+                            success: true,
+                            tags: Some(vec![]),
+                            ..Default::default()
+                        });
+                    }
+                };
+
+                let tags: Vec<String> = tags_arr
+                    .iter()
+                    .map(|v| v["name"].as_str().unwrap_or_default().to_string())
+                    .collect();
+                
+                log::info!("load_tags_impl tags: {:?}", tags);
+                return Ok(SaveResult {
+                    success: true,
+                    tags: Some(tags),
+                    ..Default::default()
+                });
+            }
+            Err(e) => {
+                log::error!("load_pages_from_notion_impl error: {:?}", e);
+            }
+        }
+
+        //let body = res.json::<TaskList>().await?;
+    }
+
+    log::error!("load_pages_from_notion_impl get_auth_info_from_global failed");
+
+    return Ok(SaveResult {
+        success: false,
+        tags: Some(vec![]),
+        ..Default::default()
+    });
 }

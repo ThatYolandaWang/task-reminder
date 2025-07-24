@@ -152,11 +152,15 @@ pub fn run() {
             notion::save_auth_info,
             notion::clear_auth_info,
             notion::select_page,
+
             task_manager::save_tasks,
             task_manager::load_tasks,
             task_manager::add_task,
             task_manager::update_task,
             task_manager::load_pages,
+            
+            task_manager::load_tags,
+            task_manager::update_tags,
         ])
         .run(tauri::generate_context!())
         .expect("failed to run app");

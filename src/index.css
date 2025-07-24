@@ -135,3 +135,12 @@ html ::-webkit-scrollbar-thumb {
 html ::-webkit-scrollbar-track {
   background: var(--background) ; /* 黄色，只为演示 */
 }
+
+.hash-tag {
+  background: #e0eaff;
+  color: #1a73e8;
+  border-radius: 4px;
+  padding: 0 4px;
+  margin: 0 2px;
+  font-weight: bold;
+}
