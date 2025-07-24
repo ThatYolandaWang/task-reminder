@@ -127,6 +127,7 @@ async function build() {
   await copyGlob(`${BUILD_PATH}/**/*.msi`, PACKAGE_DIR);
   await copyGlob(`${BUILD_PATH}/**/*.tar.gz`, PACKAGE_DIR);
   await copyGlob(`${BUILD_PATH}/**/*.sig`, PACKAGE_DIR);
+  await copyGlob(`${BUILD_PATH}/**/*.exe`, PACKAGE_DIR);
 
   // 更新 signature & url
   console.log('→ 更新 latest.json 中的 signature 和 url');

@@ -6,6 +6,7 @@ import ProgressCircle from "@/components/ui/progress-circle";
 import { Button } from "@/components/ui/button";
 import { open as openShell } from "@tauri-apps/plugin-shell";
 
+
 const NOTION_SERVER_URL = import.meta.env.VITE_NOTION_SERVER_URL;
 export default function NotionTaskDetail({ items, filterFinished, setItems, handleChangeTask, taskRefs }) {
 
@@ -25,7 +26,7 @@ export default function NotionTaskDetail({ items, filterFinished, setItems, hand
                 <NoTaskView total={total} finished={finished} />
             ) : (
                 <>
-                    <div className="text-sm text-gray-500 px-2">{total - finished} / {total}</div>
+                    <div className="text-xs text-gray-500 px-2 absolute top-0 left-0 bg-white">{total - finished} / {total}</div>
                     <Reorder.Group
                         values={items}
                         onReorder={setItems}

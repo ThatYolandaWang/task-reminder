@@ -1,15 +1,15 @@
 {
-  "version": "1.1.7",
+  "version": "1.1.8",
   "notes": "1.1.2",
-  "pub_date": "2025-07-23T18:38:04.746Z",
+  "pub_date": "2025-07-24T19:09:06.504Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSaFlicjFqc1JrNUFwTGN5NzdXQXhqYWcwUFNEdEFkWVVVeEphbWdIZ1JNM0NHVnpTbWtiVTR6REdtdVFGcGxyN2I3azJtWGJ0bStBeFlrR0xEUVhEY0x3ZmRmNkNZMXdNPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzUzMjk1ODg0CWZpbGU6dGFzay1yZW1pbmRlcl8xLjEuN194NjRfZW4tVVMubXNpClk2TzJ0dy9NMit1SENWZ3AxU3h3enJHSGpIR2g2SGRZREp0R2pVSmxKVUYyL2U2OStiUS90VHUrQVJEblFyckExSTdBU2duYXpOWHI2Q21Pd3R6U0FBPT0K",
-      "url": "https://github.com/ThatYolandaWang/task-reminder/releases/download/1.1.7/task-reminder_1.1.7_x64_en-US.msi"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSaFlicjFqc1JrNUU0UjJVZVNLdWIzM2JTL3VwRGk2bXlsSytrL1BtditkUjlDL0RnS0hvN1IrWGNBVHRTUFlEK2ZLa2lSUFgxZHMrdFNLSzRCSWlreUhEZUwwS3ZWVXd3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzUzMzg0MTQ2CWZpbGU6dGFzay1yZW1pbmRlcl8xLjEuOF94NjRfZW4tVVMubXNpCmxpdlR0UUErOUdFTHFCRUhGZThWc0tPcUZ0U09xTGZqTVlLWXlPdkVzbWk5NzJaeEpIa2thWUFEL3llQmtsY3NPWk9RMjNIUXJDdDNLWGI2dzB5ZER3PT0K",
+      "url": "https://github.com/ThatYolandaWang/task-reminder/releases/download/1.1.8/task-reminder_1.1.8_x64_en-US.msi"
     },
     "darwin-aarch64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSaFlicjFqc1JrNUtGam5JTWJRZ3pHZjhKaTliNkJuNWhmTE5Edk1kTlpwMW1ZbzZoRHh6djh4WDVtUHBRdngzeTRtRndhazQxVUlqY0tkZlZRRGFRWStHZTNaQ0xNOGdjPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzUzMjk1NjA1CWZpbGU6dGFzay1yZW1pbmRlci5hcHAudGFyLmd6CnFjZmdaUjBGVUdub0p5SjdQTDZ1NERtelJMU0VVSnowbnpKRmhmOG1SR0N5Y3haK3dOenkxMW5GeUxQNnQ5RE0wUStGYVlFU1hLVFAwVVpELzM2MEF3PT0K",
-      "url": "https://github.com/ThatYolandaWang/task-reminder/releases/download/1.1.7/task-reminder.app.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSaFlicjFqc1JrNUQvK2pXSlMxWFExOE91dU1Jb2dENzVLS1VDNnZEamY5V3R6Y3phZzRBbkVyS05qMis3VnZKVFp0R21aOU1sQVRmMUw2M2NWY1F0Yk1oalhCTVQ2UXdJPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzUzMzgzNzMxCWZpbGU6dGFzay1yZW1pbmRlci5hcHAudGFyLmd6CkJtd3NTeUw3U29WbnFMT0k2dmNqL25ZaE53ME1HU2taVWZ3cjlTTENrdTF2S3dLc3hTSTNEZVM5SmswRjIyek5BdHJnUnZlOXZSNk1RdWZmRTQ4OEN3PT0K",
+      "url": "https://github.com/ThatYolandaWang/task-reminder/releases/download/1.1.8/task-reminder.app.tar.gz"
     }
   }
 }

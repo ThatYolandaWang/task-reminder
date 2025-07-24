@@ -15,7 +15,7 @@ import NotionPage from '@/components/notion-page';
 import NotionLoginButton from '@/components/notion';
 import Loading from '@/components/ui/loading';
 
-import { Plus, AlarmClock } from 'lucide-react';
+import { Plus, AlarmClock, CalendarDays } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 import { info } from '@tauri-apps/plugin-log';
 import { toast } from "sonner";
@@ -27,7 +27,7 @@ const NOTION_SERVER_URL = import.meta.env.VITE_NOTION_SERVER_URL;
 const tabOptions = [
     { label: "今日", id: "today" },
     { label: "本周", id: "week" },
-    { label: "日历", id: "calendar" }
+    { label: "日历", id: "calendar", icon: <CalendarDays /> }
 ]
 
 const remindHoursOptions = [
@@ -48,7 +48,11 @@ export default function TaskList() {
     const taskRefs = useRef([]);
     const [focusTaskId, setFocusTaskId] = useState(null);
 
+    // 任务列表
     const [items, setItems] = useState([]);
+
+    // 标签项
+    const [tags, setTags] = useState([]);
 
 
     // 添加任务
@@ -72,7 +76,8 @@ export default function TaskList() {
                     start: getLocalISOStringWithTZ(),
                     end: null,
                     // time_zone: Intl.DateTimeFormat().resolvedOptions().timeZone
-                }
+                },
+                tags: []
             }
 
             console.log("newTask", newTask)
@@ -98,6 +103,7 @@ export default function TaskList() {
     const handleChangeTask = async (localId, newTask) => {
 
         try {
+            
             const oldItem = items.find(item => item.localId === localId)
 
             if (newTask.status === "完成") {
@@ -122,7 +128,6 @@ export default function TaskList() {
                 }
 
             } else {
-
                 const res = await invoke("update_task", {
                     task: newTask
                 })
@@ -185,7 +190,6 @@ export default function TaskList() {
             info("loadTasks")
 
             //根据tab拼接搜索条件
-
             const start =
                 id === "today" ? startOfDay(date).toISOString() :
                     id === "week" ? startOfWeek(date).toISOString() :
@@ -198,8 +202,6 @@ export default function TaskList() {
 
             const status = "0"
 
-            console.log(start, end, status)
-
             const res = await invoke("load_tasks", {
                 params: {
                     start: start,
@@ -208,7 +210,6 @@ export default function TaskList() {
                 }
             })
 
-            console.log(res)
 
             if (res.success) {
                 setItems(res.tasks.tasks.map(item => ({ ...item, localId: item.id, day: new Date(item.time.start).getDate() })));
@@ -228,13 +229,12 @@ export default function TaskList() {
         }
     }
 
-
     const changeTab = (tab) => {
         setSelectedTab(tab);
         loadTasks(tab.id);
     }
 
-    if (state === "error" || state === "not_start" || state === "waiting") {
+    if (state === "failed" || state === "not_start" || state === "waiting") {
         return (
             <div className="flex justify-center items-center h-screen">
                 <NotionLoginButton />
@@ -323,7 +323,7 @@ const Header = ({ selectedTab, setSelectedTab, filterFinished, setFilterFinished
                         setSelectedTab(item)
                         //loadTasks(item.id)
                     }}>
-                        {item.label}
+                        {item.icon ? item.icon : item.label}
                     </Button>
                 ))}
             </div>
