@@ -1,6 +1,6 @@
 {
   "version": "1.1.8",
-  "notes": "1.1.2",
+  "notes": "新增dashboard，支持#标签管理",
   "pub_date": "2025-07-24T19:35:01.187Z",
   "platforms": {
     "windows-x86_64": {
