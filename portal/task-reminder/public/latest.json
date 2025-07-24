@@ -1,10 +1,10 @@
 {
   "version": "1.1.8",
   "notes": "1.1.2",
-  "pub_date": "2025-07-24T19:09:06.504Z",
+  "pub_date": "2025-07-24T19:35:01.187Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSaFlicjFqc1JrNUU0UjJVZVNLdWIzM2JTL3VwRGk2bXlsSytrL1BtditkUjlDL0RnS0hvN1IrWGNBVHRTUFlEK2ZLa2lSUFgxZHMrdFNLSzRCSWlreUhEZUwwS3ZWVXd3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzUzMzg0MTQ2CWZpbGU6dGFzay1yZW1pbmRlcl8xLjEuOF94NjRfZW4tVVMubXNpCmxpdlR0UUErOUdFTHFCRUhGZThWc0tPcUZ0U09xTGZqTVlLWXlPdkVzbWk5NzJaeEpIa2thWUFEL3llQmtsY3NPWk9RMjNIUXJDdDNLWGI2dzB5ZER3PT0K",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSaFlicjFqc1JrNUN6eUViQXh4Yk1ONDR6d2JiZDJpUmViS3VTeDdua2tseXl4SU1IUjUvUFVBRGk2NlU2LzJZSm1SSHRsSklQTmNhTnRTbUppbFU3Q2JmQkJMTERza2drPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzUzMzg1NzAwCWZpbGU6dGFzay1yZW1pbmRlcl8xLjEuOF94NjRfZW4tVVMubXNpCk5ROXFnZklHSnNtMkkvckhsK3VxVWJaOXl5bXBrUERKM01CSjhmdXlqVVBOMmw1Y1d2Q0FIcU5aRTdtK2VyUFhwMy9lOHd0S3ZVQ0FaU1NKbkc2dUJRPT0K",
       "url": "https://github.com/ThatYolandaWang/task-reminder/releases/download/1.1.8/task-reminder_1.1.8_x64_en-US.msi"
     },
     "darwin-aarch64": {
