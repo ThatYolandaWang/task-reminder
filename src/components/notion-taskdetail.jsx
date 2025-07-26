@@ -6,12 +6,12 @@ import ProgressCircle from "@/components/ui/progress-circle";
 import { Button } from "@/components/ui/button";
 import { open as openShell } from "@tauri-apps/plugin-shell";
 
-
 const NOTION_SERVER_URL = import.meta.env.VITE_NOTION_SERVER_URL;
 export default function NotionTaskDetail({ items, filterFinished, setItems, handleChangeTask, taskRefs }) {
 
     const [total, setTotal] = useState(0)
     const [finished, setFinished] = useState(0)
+
 
     useEffect(() => {
         setTotal(items.length)
@@ -28,22 +28,26 @@ export default function NotionTaskDetail({ items, filterFinished, setItems, hand
                 <>
                     <div className="text-xs text-gray-500 px-2 absolute top-0 left-0 bg-white">{total - finished} / {total}</div>
                     <Reorder.Group
-                        values={items}
+                        values={items.map(item => item.localId)}
                         onReorder={setItems}
                         className='flex-1 overflow-y-scroll ps-2 w-full space-y-1 flex flex-col items-center justify-center'>
                         {items.filter(item => filterFinished ? item.status !== "完成" : item.status === "完成").map((item, idx) => (
                             <Task key={item.localId} item={item} onChangeValue={handleChangeTask} index={idx}
-                                ref={el => taskRefs.current[item.localId] = el} />
+                                ref={el => {
+                                    // console.log("ref", item.localId, el)
+                                    if (el) taskRefs.current[item.localId] = el;
+                                    else delete taskRefs.current[item.localId];
+                                }} />
                         ))}
                     </Reorder.Group>
                 </>
             )}
         </div>
     )
-}
+};
 
 const NoTaskView = ({ total, finished }) => {
-    const {state, authInfo } = useNotionContext(); 
+    const { state, authInfo } = useNotionContext();
 
 
     const handleJumpToHelp = async () => {

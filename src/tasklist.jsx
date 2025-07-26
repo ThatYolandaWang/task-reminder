@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNotionContext } from '@/context/NotionContext';
 import { AnimatePresence, motion } from 'framer-motion';
 
@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 import NotionCalender from '@/components/notion-calender';
 import NotionTaskDetail from '@/components/notion-taskdetail';
@@ -15,13 +16,16 @@ import NotionPage from '@/components/notion-page';
 import NotionLoginButton from '@/components/notion';
 import Loading from '@/components/ui/loading';
 
-import { Plus, AlarmClock, CalendarDays } from 'lucide-react';
+import { Plus, AlarmClock, CalendarDays, Bell } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 import { info } from '@tauri-apps/plugin-log';
 import { toast } from "sonner";
 import { startOfDay, startOfWeek, endOfDay, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
 import { v4 as uuidv4 } from 'uuid';
 import { open as openShell } from "@tauri-apps/plugin-shell";
+
+import MenuView from '@/components/menu-view'
+
 
 const NOTION_SERVER_URL = import.meta.env.VITE_NOTION_SERVER_URL;
 const tabOptions = [
@@ -36,8 +40,10 @@ const remindHoursOptions = [
     { label: '3小时', value: 3 }
 ]
 
+
+
 export default function TaskList() {
-    const { state, authInfo } = useNotionContext();  // 获取Notion状态
+    const {state, authInfo, latestVersion, updateVersion } = useNotionContext();  // 获取Notion状态
     const [selectedTab, setSelectedTab] = useState(tabOptions[0]);  // 当前选中的标签
     const [filterFinished, setFilterFinished] = useState(true);     // 是否过滤已完成任务
     const [isLoading, setIsLoading] = useState(false);
@@ -45,109 +51,112 @@ export default function TaskList() {
     const [remindLaterHours, setRemindLaterHours] = useState(1);
 
     // 用于控制自动获取焦点
-    const taskRefs = useRef([]);
+    const taskRefs = useRef({});
     const [focusTaskId, setFocusTaskId] = useState(null);
+    const processedFocusId = useRef(null); // 新增一个ref来记录已处理的ID
 
-    // 任务列表
     const [items, setItems] = useState([]);
 
-    // 标签项
-    const [tags, setTags] = useState([]);
 
 
     // 添加任务
-    const handleAddTask = async () => {
+    const handleAddTask = useCallback(async () => {
         if (selectedTab.id !== "today") {
-            setSelectedTab(tabOptions[0])
-            await loadTasks(tabOptions[0].id)
-
+            changeTab(tabOptions[0])
         }
+
         setFilterFinished(true)
 
-        try {
-
-            const newTask = {
-                localId: "new-" + uuidv4(),
-                text: "",
-                status: "未开始",
-                percent: items.length == 0 ? 50 : 0,
-                id: "",
-                time: {
-                    start: getLocalISOStringWithTZ(),
-                    end: null,
-                    // time_zone: Intl.DateTimeFormat().resolvedOptions().timeZone
-                },
-                tags: []
-            }
-
-            console.log("newTask", newTask)
-            setItems(prevItems => [...prevItems, newTask])
-
-            const res = await invoke("add_task", {
-                task: newTask
-            })
-            if (res.success) {
-                newTask.id = res.id
-
-                setFocusTaskId(newTask.localId);
-            } else {
-                toast.error(res.message)
-                setItems(prevItems => prevItems.filter(item => item.localId == newTask.localId))
-            }
-        } catch (err) {
-            toast.error("添加失败：" + err.message)
+        const newTask = {
+            localId: "new-" + uuidv4(),
+            text: "",
+            status: "未开始",
+            percent: 0,
+            id: "",
+            time: {
+                start: getLocalISOStringWithTZ(),
+                end: null,
+            },
+            tags: []
         }
-    }
 
-    // 修改任务
-    const handleChangeTask = async (localId, newTask) => {
+        console.log("newTask", newTask)
+        // 使用函数式更新，避免依赖外部的 items
+        setItems(prevItems => {
+            const finalTask = { ...newTask, percent: prevItems.length === 0 ? 50 : 0 };
+            return [...prevItems, finalTask];
+        })
 
+        setFocusTaskId(newTask.localId);
+
+    }, [selectedTab])
+
+
+    // 修改任务 - 最终简化版
+    const handleChangeTask = useCallback(async (localId, updatedTask) => {
+        const itemToSave = { ...updatedTask }; // 创建一个副本进行操作
+
+        // 乐观更新UI，让用户立即看到变化
+        setItems(prevItems => prevItems.map(item =>
+            item.localId === localId ? itemToSave : item
+        ));
+
+        // 决定是新增还是更新
         try {
-            
-            const oldItem = items.find(item => item.localId === localId)
-
-            if (newTask.status === "完成") {
-                newTask.time.end = getLocalISOStringWithTZ()
-            }
-
-            setItems(prevItems => prevItems.map(item => item.localId === localId ? newTask : item))
-
-
-            if (oldItem.id === "") {
-                const res = await invoke("add_task", {
-                    task: newTask
-                })
+            if (itemToSave.id === "") { // ID为空，说明是新任务
+                if (itemToSave.status === "完成") {
+                    itemToSave.time.end = getLocalISOStringWithTZ();
+                }
+                const res = await invoke("add_task", { task: itemToSave });
                 if (res.success) {
-                    newTask.id = res.id
-                    setItems(prevItems => prevItems.map(item => item.localId === localId ? newTask : item))
-
+                    // 保存成功后，用后端返回的真实ID更新我们的状态
+                    setItems(prev => prev.map(item =>
+                        item.localId === localId ? { ...itemToSave, id: res.id } : item
+                    ));
                 } else {
-                    // 如果失败，则恢复原来的任务
-                    toast.error(res.message)
-                    setItems(prevItems => [...prevItems, oldItem])
+                    toast.error(`创建失败: ${res.message}`);
+                    // 创建失败，从UI上移除这个临时任务
+                    setItems(prev => prev.filter(item => item.localId !== localId));
                 }
-
-            } else {
-                const res = await invoke("update_task", {
-                    task: newTask
-                })
+            } else { // ID存在，说明是更新现有任务
+                if (itemToSave.status === "完成" && !items.find(i => i.localId === localId)?.time.end) {
+                    itemToSave.time.end = getLocalISOStringWithTZ();
+                }
+                const res = await invoke("update_task", { task: itemToSave });
                 if (!res.success) {
-
-                    // 如果失败，则恢复原来的任务
-                    toast.error(res.message)
-                    setItems(prevItems => [...prevItems, oldItem])
+                    toast.error(`更新失败: ${res.message}`);
+                    // 更新失败，回滚到更新前的状态
+                    const oldItem = items.find(i => i.localId === localId);
+                    setItems(prev => prev.map(item => item.localId === localId ? oldItem : item));
                 }
             }
-
         } catch (err) {
-            toast.error("更新失败：" + err.message)
+            toast.error(`操作失败: ${err}`);
+            const oldItem = items.find(i => i.localId === localId);
+            setItems(prev => prev.map(item => item.localId === localId ? oldItem : item));
         }
 
-        orderItems()
-    }
+        orderItems();
+
+    }, [items]);
 
     const orderItems = () => {
-        setItems(prevItems => [...prevItems].sort((a, b) => Number(b.percent) - Number(a.percent)))
+        if (items.length > 0) {
+
+            function isSortedByPercentDesc(arr) {
+                for (let i = 1; i < arr.length; i++) {
+                    if (Number(arr[i - 1].percent) < Number(arr[i].percent)) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+
+            if (isSortedByPercentDesc(items)) {
+                return
+            }
+            setItems(prevItems => [...prevItems].sort((a, b) => Number(b.percent) - Number(a.percent)))
+        }
     }
 
     async function remindLater() {
@@ -165,7 +174,8 @@ export default function TaskList() {
     useEffect(() => {
         if (state === "success" && authInfo?.duplicated_template_id) {
             changeTab(tabOptions[0]);
-        } else {
+
+        } else if (items.length > 0) {
             setItems([])
         }
     }, [state, authInfo]);
@@ -173,14 +183,16 @@ export default function TaskList() {
 
     // 添加任务，自动聚焦
     useEffect(() => {
-        if (focusTaskId && taskRefs.current[focusTaskId]) {
+
+        if (focusTaskId && taskRefs.current[focusTaskId] && focusTaskId !== processedFocusId.current) {
             taskRefs.current[focusTaskId].focusTextarea?.();
-            setFocusTaskId(null); // 聚焦后重置
+            processedFocusId.current = focusTaskId; // 记录下来，防止重复聚焦
         }
-    }, [items, focusTaskId]);
+    }, [focusTaskId, items]);
 
 
-    const loadTasks = async (id, date = new Date()) => {
+    const loadTasks = useCallback(async (id, date = new Date()) => {
+
         try {
             if (state != "success" || !authInfo?.duplicated_template_id) {
                 return
@@ -213,6 +225,7 @@ export default function TaskList() {
 
             if (res.success) {
                 setItems(res.tasks.tasks.map(item => ({ ...item, localId: item.id, day: new Date(item.time.start).getDate() })));
+                orderItems()
             } else {
                 if (res.status == "unauthorized") {
                     toast.error("请重新登陆, unauthorized")
@@ -227,79 +240,90 @@ export default function TaskList() {
         } finally {
             setIsLoading(false)
         }
-    }
+    }, [selectedTab, state])
 
-    const changeTab = (tab) => {
+    const changeTab = async (tab) => {
         setSelectedTab(tab);
-        loadTasks(tab.id);
+        await loadTasks(tab.id);
     }
 
-    if (state === "failed" || state === "not_start" || state === "waiting") {
-        return (
-            <div className="flex justify-center items-center h-screen">
-                <NotionLoginButton />
-            </div>
-        )
-    }
-
-    if (state === "success") {
-        return (
+    return (
+        <MenuView loadTasks={() => loadTasks(selectedTab.id)}>
             <div className="flex flex-col h-screen">
-
                 <Header
                     selectedTab={selectedTab}
                     setSelectedTab={changeTab}
                     filterFinished={filterFinished}
                     setFilterFinished={setFilterFinished} />
-
-                <AnimatePresence mode="wait" className='flex-1 '>
-                    <motion.div
-                        key={selectedTab.id}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.5 }}
-                        className="flex flex-col items-center justify-center flex-1 gap-2">
-
-
-                        {/* 日历模式避免重新加载，loading在组件内部展示 */}
-                        {selectedTab.id === "calendar" ? (
-                            <NotionCalender
-                                items={items}
-                                handleChangeTask={handleChangeTask}
-                                loadTasks={loadTasks}
-                                isLoading={isLoading}
-                            />
-                        ) : (isLoading) ? (
-                            <Loading />
-                        ) : (
-                            <NotionTaskDetail
-                                items={items}
-                                filterFinished={filterFinished}
-                                setItems={setItems}
-                                handleChangeTask={handleChangeTask}
-                                taskRefs={taskRefs}
-                            />
-                        )}
-
-
-                    </motion.div>
-                </AnimatePresence>
+                {state === "success" ?
+                    <SuccessView
+                        selectedTab={selectedTab}
+                        items={items}
+                        handleChangeTask={handleChangeTask}
+                        loadTasks={loadTasks}
+                        filterFinished={filterFinished}
+                        setItems={setItems}
+                        taskRefs={taskRefs}
+                        isLoading={isLoading}
+                    /> :
+                    <UnLoginView />
+                }
 
                 <Footer
                     handleAddTask={handleAddTask}
                     remindLaterHours={remindLaterHours}
                     setRemindLaterHours={setRemindLaterHours}
-                    remindLater={remindLater} />
+                    remindLater={remindLater}
+                    latestVersion={latestVersion}
+                    updateVersion={updateVersion}
+                />
 
             </div>
-        )
-    }
+        </MenuView>
+    )
+}
+const SuccessView = ({ selectedTab, items, handleChangeTask, loadTasks, filterFinished, setItems, taskRefs, isLoading }) => {
     return (
-        <div className="flex flex-col h-screen">
-            <div className="flex flex-col items-center justify-center flex-1">
-                <p>Error</p>
-            </div>
+        <AnimatePresence mode="wait" className='flex-1 '>
+            <motion.div
+                key={selectedTab.id}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.5 }}
+                className="flex flex-col items-center justify-center flex-1 gap-2 relative">
+
+
+                {/* 日历模式避免重新加载，loading在组件内部展示 */}
+                {selectedTab.id === "calendar" ? (
+                    <NotionCalender
+                        items={items}
+                        handleChangeTask={handleChangeTask}
+                        loadTasks={loadTasks}
+                    />
+                ) : (
+                    <NotionTaskDetail
+                        items={items}
+                        filterFinished={filterFinished}
+                        setItems={setItems}
+                        handleChangeTask={handleChangeTask}
+                        taskRefs={taskRefs}
+                    />
+                )}
+
+                {isLoading && <Loading className="absolute top-0 left-0" />}
+
+            </motion.div>
+        </AnimatePresence>
+    )
+}
+const UnLoginView = () => {
+    useEffect(() => {
+        console.log("UnLoginView")
+    }, [])
+    return (
+        <div className="flex justify-center items-center h-screen">
+            <NotionLoginButton />
         </div>
     )
 }
@@ -331,8 +355,8 @@ const Header = ({ selectedTab, setSelectedTab, filterFinished, setFilterFinished
 
 
             <div className='flex flex-row justify-end items-center'>
-                <img src="/icon.png" alt="notion" width={20} height={20} className='cursor-pointer' onClick={handleJumpToPortal}/>
-                <NotionLoginButton />
+                <img src="/icon.png" alt="notion" width={20} height={20} className='cursor-pointer' onClick={handleJumpToPortal} />
+                <NotionLoginButton compact={true} />
                 <div className='flex flex-row items-center justify-end gap-2 px-2'>
                     <Label htmlFor="filterFinished" className='text-sm text-gray-500'>{filterFinished ? "进行中" : "已完成"}</Label>
                     <Switch id="filterFinished" checked={filterFinished} onCheckedChange={setFilterFinished} />
@@ -342,7 +366,8 @@ const Header = ({ selectedTab, setSelectedTab, filterFinished, setFilterFinished
     )
 }
 
-const Footer = ({ handleAddTask, remindLaterHours, setRemindLaterHours, remindLater }) => {
+const Footer = ({ handleAddTask, remindLaterHours, setRemindLaterHours, remindLater, latestVersion, updateVersion }) => {
+    
     return (
         <div className="flex flex-row justify-between items-center h-10 sticky bottom-0 bg-white">
 
@@ -363,11 +388,26 @@ const Footer = ({ handleAddTask, remindLaterHours, setRemindLaterHours, remindLa
                 </Select>
             </div>
 
+            <div className='flex flex-row items-center justify-end gap-2 px-2'>
 
-            {/* 添加任务 */}
-            <Button variant="ghost" onClick={handleAddTask}>
-                <Plus size={16} /> 添加任务
-            </Button>
+                {/* 添加任务 */}
+                <Button variant="ghost" onClick={handleAddTask}>
+                    <Plus size={16} /> 添加任务
+                </Button>
+                {latestVersion &&
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <div className='text-sm flex flex-row items-center gap-1 cursor-pointer' onClick={updateVersion} autoFocus><Bell size={12} />
+                            </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p className='text-sm'>立刻升级到{latestVersion.version}</p>
+                            <p className='text-sm'>{latestVersion.body}</p>
+                        </TooltipContent>
+                    </Tooltip>
+                }
+
+            </div>
         </div>
     )
 }

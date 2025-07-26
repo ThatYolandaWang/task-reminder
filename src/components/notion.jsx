@@ -7,7 +7,7 @@ const NOTION_CLIENT_ID = import.meta.env.VITE_NOTION_CLIENT_ID;
 const NOTION_SERVER_URL = import.meta.env.VITE_NOTION_SERVER_URL;
 const NOTION_REDIRECT_URI = `${NOTION_SERVER_URL}/api/notion/callback`
 
-export default function NotionLoginButton() {
+export default function NotionLoginButton({compact = false}) {
 
     const { state, authInfo, startPolling, stopPolling } = useNotionContext();
 
@@ -32,6 +32,14 @@ export default function NotionLoginButton() {
             }
             await openShell(url)
         }
+    }
+
+    if (compact) {
+        return (
+            <Button variant="ghost" onClick={handleClick} disabled={state === "waiting"}>
+                <img src="/notionlogo.png" alt="notion" className={`w-5 h-5 flex-shrink-0 ${state == "waiting" && "animate-pulse"}`} />
+            </Button>
+        )
     }
 
     return (

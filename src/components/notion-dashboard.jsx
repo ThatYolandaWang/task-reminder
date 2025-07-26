@@ -16,9 +16,6 @@ import { getDaysInMonth } from 'date-fns'
 
 
 export default function NotionDashboard({ data }) {
-
-
-
     let chartConfig = {
         option1: {
             label: data.option1,
@@ -31,7 +28,7 @@ export default function NotionDashboard({ data }) {
     }
 
     return (
-        <ChartContainer config={chartConfig} className="w-full h-[calc(100dvh-130px)] min-h-[200px]">
+        <ChartContainer config={chartConfig} className="w-full h-[calc(100dvh-120px)] min-h-[200px]">
             <BarChart accessibilityLayer data={data.data}>
                 <ChartTooltip content={<ChartTooltipContent  indicator="line" />} />
                 <XAxis

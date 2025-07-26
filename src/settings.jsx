@@ -5,6 +5,10 @@ import { Switch } from "@/components/ui/switch"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+
+import { Bell } from "lucide-react";
+
 import NotionLoginButton from "@/components/notion"
 import NotionPage from "@/components/notion-page"
 
@@ -13,14 +17,10 @@ import { invoke } from '@tauri-apps/api/core';
 import { useNotionContext } from "@/context/NotionContext";
 import { toast } from "sonner";
 
-import { getVersion } from '@tauri-apps/api/app';
-import { check } from '@tauri-apps/plugin-updater';
-import { relaunch } from '@tauri-apps/plugin-process';
-
 
 export default function Settings() {
 
-  const { state, authInfo, logout } = useNotionContext();
+  const { state, authInfo, logout, version, latestVersion, updateVersion } = useNotionContext();
 
   const [isOn, setIsOn] = useState(false)
 
@@ -31,8 +31,6 @@ export default function Settings() {
 
   const debounceTimer = useRef(); // 防抖计时器
 
-  const [version, setVersion] = useState("")
-  const [latestVersion, setLatestVersion] = useState("")
 
   useEffect(() => {
 
@@ -41,28 +39,11 @@ export default function Settings() {
   }, [])
 
 
-  async function checkVersion(){
-
-    try {
-      const version = await getVersion()
-      setVersion(version)
-
-      const update = await check()
-      if (update) {
-        setLatestVersion(update.version)
-      }
-    } catch (error) {
-      toast.error(error)
-    }
-  }
-
   async function loadSetting() {
 
     try {
       const setting = await invoke('load_setting');
       setSetting(setting)
-
-      checkVersion();
     } catch (error) {
       toast.error(error)
     }
@@ -103,45 +84,6 @@ export default function Settings() {
       toast.error(error)
     }
   }
-
-  const checkUpdate = async () => {
-
-    try {
-      const update = await check()
-      if (update) {
-        toast.info(
-          `发现新版本 ${update.version}，更新内容：${update.body}`
-        )
-        let downloaded = 0;
-        let contentLength = 0;
-        // alternatively we could also call update.download() and update.install() separately
-        await update.downloadAndInstall((event) => {
-          switch (event.event) {
-            case 'Started':
-              contentLength = event.data.contentLength;
-              console.log(`started downloading ${event.data.contentLength} bytes`);
-              break;
-            case 'Progress':
-              downloaded += event.data.chunkLength;
-              console.log(`downloaded ${downloaded} from ${contentLength}`);
-              break;
-            case 'Finished':
-              console.log('download finished');
-              break;
-          }
-        });
-
-        toast.success('更新已安装，正在重启应用');
-        await relaunch();
-      }
-      else {
-        toast.info('当前已是最新版本')
-      }
-    } catch (error) {
-      toast.error("检查更新失败:" + error)
-    }
-  }
-
 
   return (
     <div className='flex flex-col items-center justify-center gap-8 px-4 h-full'>
@@ -194,14 +136,21 @@ export default function Settings() {
 
 
       </div>
-      <div className="flex flex-col items-center justify-between p-2">
+      <div className="flex flex-row items-center justify-between gap-1 p-1">
 
-        <div className="text-sm text-ellipsis whitespace-nowrap">版本: {version}</div>
+        <div className="text-sm text-ellipsis whitespace-nowrap">当前版本: {version}</div>
 
-        {latestVersion ?
-          <Button variant="ghost" onClick={checkUpdate}>更新到{latestVersion}</Button>
-        :
-          <div className="text-xs text-ellipsis whitespace-nowrap text-gray-400">当前已是最新版本</div>
+        {latestVersion &&
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className='text-sm flex flex-row items-center gap-1 cursor-pointer' onClick={updateVersion} autoFocus><Bell size={12} />
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className='text-sm'>立刻升级到{latestVersion.version}</p>
+              <p className='text-sm'>{latestVersion.body}</p>
+            </TooltipContent>
+          </Tooltip>
         }
       </div>
     </div>

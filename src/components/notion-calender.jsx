@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from "react"
-import { useTagContext } from "@/context/TagContext"
+import { useNotionContext } from "@/context/NotionContext"
 import { Calendar, CalendarDayButton } from "@/components/ui/calendar"
 import { motion, AnimatePresence, Reorder } from "framer-motion";
 import { Task } from "@/components/task";
-import { subMonths,getDaysInMonth } from 'date-fns'
+import { subMonths, getDaysInMonth } from 'date-fns'
 import Loading from "@/components/ui/loading"
 import { Button } from "@/components/ui/button"
 import { ListTodo, ChartBar, Tag } from "lucide-react"
@@ -14,8 +14,8 @@ const tabOptions = [
     { label: "统计", id: "dashboard", icon: <ChartBar /> },
     { label: "标签", id: "tag", icon: <Tag /> }
 ]
-export default function NotionCalender({ items, loadTasks, handleChangeTask, isLoading }) {
-    const { tagOptions } = useTagContext()
+export default function NotionCalender({ items, loadTasks, handleChangeTask }) {
+    const { tagOptions } = useNotionContext()
 
     const [date, setDate] = useState(new Date())
     const [taskStatus, setTaskStatus] = useState([])
@@ -72,7 +72,9 @@ export default function NotionCalender({ items, loadTasks, handleChangeTask, isL
                 option1: items.filter(item => item.tags.includes(tag) && item.status === "完成").length,
                 option2: items.filter(item => item.tags.includes(tag) && item.status !== "完成").length,
             }
-        }).filter(item => item.option1 > 0 || item.option2 > 0)
+        }).filter(item => item.option1 + item.option2 > 0)
+
+        console.log(tagOptions)
 
         return {
             option1: "完成",
@@ -82,7 +84,7 @@ export default function NotionCalender({ items, loadTasks, handleChangeTask, isL
     }, [items, tagOptions])
 
     return (
-        <div className="w-full flex flex-row">
+        <div className="w-full flex flex-row flex-1">
             <Calendar
                 mode="single"
                 showOutsideDays={false}
@@ -110,13 +112,12 @@ export default function NotionCalender({ items, loadTasks, handleChangeTask, isL
                 required
             />
 
-            <AnimatePresence mode="wait" className='flex-1'>
-                {isLoading ? (
-                    <Loading />
-                ) : (
-                    <div className="flex-1 flex flex-col gap-2">
-                        <TabView selectedTab={selectedTab} setSelectedTab={setSelectedTab} />
+            <AnimatePresence mode="wait">
 
+                <div className="flex flex-col gap-2 flex-1">
+                    <TabView selectedTab={selectedTab} setSelectedTab={setSelectedTab} />
+
+                    <div className="flex-1 overflow-y-auto max-h-[calc(100dvh-120px)]">
 
                         {selectedTab.id === "detail" ? (
                             <TaskList items={items} date={date} handleChangeTask={handleChangeTask} />
@@ -124,7 +125,9 @@ export default function NotionCalender({ items, loadTasks, handleChangeTask, isL
                             <NotionDashboard data={selectedTab.id === "dashboard" ? taskFinish : tagList} />
                         )}
                     </div>
-                )}
+
+                </div>
+
             </AnimatePresence>
         </div>
     )
@@ -155,7 +158,7 @@ function DayButton({ day, modifiers, children, task, ...props }) {
 
 const TabView = ({ selectedTab, setSelectedTab }) => {
     return (
-        <div className="flex flex-row">
+        <div className="flex flex-row h-8">
             {tabOptions.map((item, idx) => (
                 <Button key={idx} size="icon" variant={selectedTab.label === item.label ? "outline" : "ghost"} onClick={() => {
                     setSelectedTab(item)

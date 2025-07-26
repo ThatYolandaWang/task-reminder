@@ -1,15 +1,15 @@
 {
-  "version": "1.1.8",
-  "notes": "新增dashboard，支持#标签管理",
-  "pub_date": "2025-07-24T19:35:01.187Z",
+  "version": "1.1.9",
+  "notes": "新增右键菜单\n 支持标签管理\n 支持界面内升级选项",
+  "pub_date": "2025-07-26T12:40:29.332Z",
   "platforms": {
     "windows-x86_64": {
       "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSaFlicjFqc1JrNUN6eUViQXh4Yk1ONDR6d2JiZDJpUmViS3VTeDdua2tseXl4SU1IUjUvUFVBRGk2NlU2LzJZSm1SSHRsSklQTmNhTnRTbUppbFU3Q2JmQkJMTERza2drPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzUzMzg1NzAwCWZpbGU6dGFzay1yZW1pbmRlcl8xLjEuOF94NjRfZW4tVVMubXNpCk5ROXFnZklHSnNtMkkvckhsK3VxVWJaOXl5bXBrUERKM01CSjhmdXlqVVBOMmw1Y1d2Q0FIcU5aRTdtK2VyUFhwMy9lOHd0S3ZVQ0FaU1NKbkc2dUJRPT0K",
       "url": "https://github.com/ThatYolandaWang/task-reminder/releases/download/1.1.8/task-reminder_1.1.8_x64_en-US.msi"
     },
     "darwin-aarch64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSaFlicjFqc1JrNUQvK2pXSlMxWFExOE91dU1Jb2dENzVLS1VDNnZEamY5V3R6Y3phZzRBbkVyS05qMis3VnZKVFp0R21aOU1sQVRmMUw2M2NWY1F0Yk1oalhCTVQ2UXdJPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzUzMzgzNzMxCWZpbGU6dGFzay1yZW1pbmRlci5hcHAudGFyLmd6CkJtd3NTeUw3U29WbnFMT0k2dmNqL25ZaE53ME1HU2taVWZ3cjlTTENrdTF2S3dLc3hTSTNEZVM5SmswRjIyek5BdHJnUnZlOXZSNk1RdWZmRTQ4OEN3PT0K",
-      "url": "https://github.com/ThatYolandaWang/task-reminder/releases/download/1.1.8/task-reminder.app.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSaFlicjFqc1JrNUJKWkhkdmJDblZSbUp4bk9xMGxpYTVROG9KcnJuQk1UY01UOGt0U2k0Y0J4TjdhV2NYUFlQVVh0R3dmbkZwbk4wTmtLVU1nZnZLZjZteDd3aHE5YlFzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzUzNTMzNjI5CWZpbGU6dGFzay1yZW1pbmRlci5hcHAudGFyLmd6CmhJMnVvOTk3RnUvMjVRQVQzM2pMRnNHSTNxbzlLams1ck10Sm45TW9LVlJlSHZUL0NkcjFoOWlDNFlOUDR2d080SlZsM01UaUEyQ095RDJYMlNKS0J3PT0K",
+      "url": "https://github.com/ThatYolandaWang/task-reminder/releases/download/1.1.9/task-reminder.app.tar.gz"
     }
   }
 }

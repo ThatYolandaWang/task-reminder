@@ -13,6 +13,29 @@ use tauri::{Manager, WindowEvent};
 use std::env;
 use std::path::PathBuf;
 
+#[tauri::command]
+fn open_settings_window(app: tauri::AppHandle) {
+    // 检查是否已存在 settings 窗口
+    if let Some(win) = app.get_webview_window("settings") {
+        log::info!("show settings window");
+        win.show().unwrap();
+        win.set_focus().unwrap();
+    } else {
+        log::info!("create settings window");
+        // 不存在则新建
+        tauri::WebviewWindowBuilder::new(
+        &app,
+        "settings", // 窗口唯一标识
+        tauri::WebviewUrl::App("#/settings".into()),
+        )
+        .inner_size(300.0, 600.0)
+        .title("设置")
+        .visible(true)
+        .build()
+        .expect("failed to create settings window");
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -86,23 +109,26 @@ pub fn run() {
                         }
                     }
                     "settings" => {
-                        // 检查是否已存在 settings 窗口
-                        if let Some(win) = app.get_webview_window("settings") {
-                            win.show().unwrap();
-                            win.set_focus().unwrap();
-                        } else {
-                            // 不存在则新建
-                            tauri::WebviewWindowBuilder::new(
-                            app,
-                            "settings", // 窗口唯一标识
-                            tauri::WebviewUrl::App("#/settings".into()),
-                            )
-                            .inner_size(300.0, 600.0)
-                            .title("设置")
-                            .visible(true)
-                            .build()
-                            .expect("failed to create settings window");
-                        }
+                        open_settings_window(app.app_handle().clone());
+                        // // 检查是否已存在 settings 窗口
+                        // if let Some(win) = app.get_webview_window("settings") {
+                        //     log::info!("show settings window");
+                        //     win.show().unwrap();
+                        //     win.set_focus().unwrap();
+                        // } else {
+                        //     log::info!("create settings window");
+                        //     // 不存在则新建
+                        //     tauri::WebviewWindowBuilder::new(
+                        //     app,
+                        //     "settings", // 窗口唯一标识
+                        //     tauri::WebviewUrl::App("#/settings".into()),
+                        //     )
+                        //     .inner_size(300.0, 600.0)
+                        //     .title("设置")
+                        //     .visible(true)
+                        //     .build()
+                        //     .expect("failed to create settings window");
+                        // }
                     }
                     _ => {}
                 })
@@ -161,6 +187,8 @@ pub fn run() {
             
             task_manager::load_tags,
             task_manager::update_tags,
+
+            open_settings_window,
         ])
         .run(tauri::generate_context!())
         .expect("failed to run app");

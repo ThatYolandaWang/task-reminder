@@ -5,7 +5,7 @@ import { HashRouter, Routes, Route } from "react-router-dom";
 
 import './index.css'
 import NotionProvider from './context/NotionProvider'
-import TagProvider from './context/TagProvider'
+// import TagProvider from './context/TagProvider'
 import TaskList from './tasklist'
 import Settings from './settings'
 import { Toaster } from "@/components/ui/sonner"
@@ -14,7 +14,7 @@ createRoot(document.getElementById('root')).render(
   // <StrictMode>
 
   <NotionProvider>
-    <TagProvider>
+    {/* <TagProvider> */}
       <HashRouter>
         <Routes>
           <Route path="/main" element={<TaskList />} />
@@ -22,7 +22,7 @@ createRoot(document.getElementById('root')).render(
         </Routes>
       </HashRouter>
       <Toaster />
-    </TagProvider>
+    {/* </TagProvider> */}
   </NotionProvider>
   // </StrictMode>,
 )

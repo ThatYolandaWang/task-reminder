@@ -1,16 +1,15 @@
-import { useTagContext } from "@/context/TagContext";
+import { useNotionContext } from '@/context/NotionContext';
 import { useState, useRef, useEffect, forwardRef, useImperativeHandle } from "react";
 import { CommandDialog, CommandInput, CommandList, CommandItem, CommandEmpty } from "@/components/ui/command";
 import { X } from "lucide-react";
+import NotionTag from '@/components/notion-tag';
 
 export const TextareaCommand = forwardRef(({ value, tags, onChange, disabled, ...props }, ref) => {
-    const { tagOptions, createTag, isTagsLoading } = useTagContext();
-
 
     const [taskTags, setTaskTags] = useState(tags || []);
     const [text, setText] = useState(value);
     const [open, setOpen] = useState(false);
-    const [commandQuery, setCommandQuery] = useState("");
+
     const textareaRef = useRef();
     // 记录当前触发的#的起始位置
     const [triggerPos, setTriggerPos] = useState(null);
@@ -18,23 +17,43 @@ export const TextareaCommand = forwardRef(({ value, tags, onChange, disabled, ..
 
     // 监听text变化，更新tags和textarea高度
     useEffect(() => {
-        // // 正则表达式提取文本
-        // const regex = /#([\w\u4e00-\u9fa5\-]+)\s/g;
-
-        // const matches = [];
-        // let match;
-        // while ((match = regex.exec(text)) !== null) {
-        //     matches.push(match[0].trim()); // match[0] 是带#和空格的整体
-        //     // matches.push(match[1]); // match[1] 是不带#的内容
-        // }
-        // setTaskTags(matches);
-
         if (textareaRef.current) {
             textareaRef.current.style.height = 'auto';
             textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
         }
     }, [text]);
 
+    const handleInputChange = e => {
+        const val = e.target.value;
+        setText(val);
+        onChange(val);
+
+        setTriggerPos(e.target.selectionStart);
+
+    };
+
+    const handleSelect = option => {
+
+        console.log("handleSelect", option);
+        const newTags = [...taskTags, option];
+        setTaskTags(newTags);
+
+        const newValue = text.slice(0, triggerPos - 1)
+        setText(newValue);
+        onChange(newValue, newTags);
+
+        // 恢复光标到插入后的位置
+        setOpen(false);
+
+        // 恢复光标到插入后的位置
+        setTimeout(() => {
+            if (textareaRef.current) {
+                textareaRef.current.focus();
+            }
+        }, 0);
+    }
+
+    /*
     const handleInputChange = e => {
         const val = e.target.value;
         const cursor = e.target.selectionStart;
@@ -66,12 +85,6 @@ export const TextareaCommand = forwardRef(({ value, tags, onChange, disabled, ..
         setTriggerPos(null);
     };
 
-
-
-    const filteredOptions = tagOptions.filter(opt =>
-        opt.startsWith(commandQuery)
-    ).slice(0, 5);
-
     const handleCreateTag = async (tag) => {
         const success = await createTag(tag);
         if (!success) return;
@@ -79,7 +92,7 @@ export const TextareaCommand = forwardRef(({ value, tags, onChange, disabled, ..
         // 替换#xxx为#option
         const before = value.slice(0, triggerPos.start);
         const after = value.slice(triggerPos.end);
-        const newValue = `${before}${after}`;
+        const newValue = `${before}`;
 
         setText(newValue);
 
@@ -96,7 +109,7 @@ export const TextareaCommand = forwardRef(({ value, tags, onChange, disabled, ..
         // 恢复光标到插入后的位置
         setTimeout(() => {
             if (textareaRef.current) {
-                const pos = before.length + tag.length + 2; // # + option + 空格
+                const pos = before.length ;//+ tag.length + 2; // # + option + 空格
                 textareaRef.current.selectionStart = textareaRef.current.selectionEnd = pos;
                 textareaRef.current.focus();
             }
@@ -108,7 +121,7 @@ export const TextareaCommand = forwardRef(({ value, tags, onChange, disabled, ..
         // 替换#xxx为#option
         const before = value.slice(0, triggerPos.start);
         const after = value.slice(triggerPos.end);
-        const newValue = `${before}${after}`;
+        const newValue = `${before}`;
         setText(newValue);
 
         const newTags = [...taskTags, option];
@@ -122,12 +135,16 @@ export const TextareaCommand = forwardRef(({ value, tags, onChange, disabled, ..
         // 恢复光标到插入后的位置
         setTimeout(() => {
             if (textareaRef.current) {
-                const pos = before.length + option.length + 2; // # + option + 空格
+                const pos = before.length;// + option.length + 2; // # + option + 空格
                 textareaRef.current.selectionStart = textareaRef.current.selectionEnd = pos;
-                textareaRef.current.focus();
+                textareaRef.current?.focus();
             }
         }, 0);
     };
+
+    */
+
+
 
     const handleRemoveTag = tag => {
         if (disabled) return;
@@ -142,10 +159,37 @@ export const TextareaCommand = forwardRef(({ value, tags, onChange, disabled, ..
         }
     }));
 
+    const handleKeyDown = (e) => {
+        // 当命令建议窗口打开时，禁用回车保存功能
+        if (open) return;
+
+        if (e.key === 'Enter' && !e.shiftKey) {
+
+            e.preventDefault(); // 阻止默认的回车换行行为
+            e.target.blur();    // 手动触发blur事件，调用上层onBlur来保存
+
+        }
+        // 如果是 Shift + Enter，则什么也不做，允许默认的换行行为
+
+        if (e.key === '#' && e.shiftKey) {
+            e.preventDefault(); // 阻止默认的回车换行行为
+            const cursor = e.target.selectionStart;
+            setTriggerPos(cursor);
+            setOpen(true);
+        }
+    };
+
+
     return (
         <div className="w-full flex flex-col gap-1">
-            <textarea rows={1} className="focus:outline-none focus:ring-0 resize-none overflow-hidden" type="textarea" ref={textareaRef} value={text}
-                onChange={handleInputChange} disabled={disabled} {...props}
+            <textarea
+                placeholder="输入任务...   使用#添加标签"
+                rows={1}
+                className="focus:outline-none focus:ring-0 resize-none overflow-hidden" type="textarea"
+                ref={textareaRef} value={text}
+                onChange={handleInputChange}
+                onKeyDown={handleKeyDown}
+                disabled={disabled} {...props}
             />
             {taskTags.length > 0 &&
                 <div className="text-gray-500 text-sm flex flex-row gap-2">
@@ -159,6 +203,8 @@ export const TextareaCommand = forwardRef(({ value, tags, onChange, disabled, ..
                     ))}
                 </div>
             }
+
+            {/*
             <CommandDialog open={open} onOpenChange={setOpen}>
                 <CommandInput
                     placeholder="输入标签..."
@@ -186,7 +232,8 @@ export const TextareaCommand = forwardRef(({ value, tags, onChange, disabled, ..
                     ))}
                 </CommandList>
             </CommandDialog>
-
+            */}
+            <NotionTag open={open} setOpen={setOpen} handleSelect={handleSelect} />
         </div>
     )
 })

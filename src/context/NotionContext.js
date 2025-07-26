@@ -6,7 +6,17 @@ export const NotionContext = createContext({
     startPolling: () => { },
     stopPolling: () => { },
     logout: () => { },
+    pages: [],
     selectPage: () => { },
+    version: "",
+    latestVersion: null,
+    updateVersion: () => { },
+
+    // 标签列表
+    tagOptions: [],
+    isTagsLoading: false,
+    createTag: () => { },
+    deleteTag: () => { },
 });
 
 export function useNotionContext() {
